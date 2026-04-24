@@ -1,0 +1,53 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 96 128" width="96" height="128">
+  <rect width="96" height="128" fill="#00ff00"/>
+  <defs>
+    <g id="m-down-idle">
+      <rect x="11" y="5" width="10" height="8" fill="#1b2230"/>
+      <rect x="9" y="10" width="14" height="8" fill="#263146"/>
+      <rect x="10" y="11" width="12" height="7" fill="#efcdb6"/>
+      <rect x="11" y="18" width="10" height="5" fill="#f4f6f7"/>
+      <rect x="8" y="23" width="16" height="8" fill="#2f6c63"/>
+      <rect x="15" y="19" width="2" height="11" fill="#29323c"/>
+      <rect x="9" y="32" width="5" height="8" fill="#2d3340"/>
+      <rect x="18" y="32" width="5" height="8" fill="#2d3340"/>
+      <rect x="10" y="40" width="4" height="4" fill="#1b1f29"/>
+      <rect x="18" y="40" width="4" height="4" fill="#1b1f29"/>
+    </g>
+    <g id="m-down-step1"><use href="#m-down-idle"/><rect x="9" y="32" width="5" height="7" fill="#2d3340"/><rect x="18" y="32" width="5" height="9" fill="#2d3340"/><rect x="9" y="39" width="4" height="4" fill="#1b1f29"/><rect x="19" y="41" width="4" height="3" fill="#1b1f29"/></g>
+    <g id="m-down-step2"><use href="#m-down-idle"/><rect x="9" y="32" width="5" height="9" fill="#2d3340"/><rect x="18" y="32" width="5" height="7" fill="#2d3340"/><rect x="10" y="41" width="4" height="3" fill="#1b1f29"/><rect x="18" y="39" width="4" height="4" fill="#1b1f29"/></g>
+    <g id="m-left-idle">
+      <rect x="11" y="5" width="8" height="8" fill="#1b2230"/>
+      <rect x="9" y="9" width="11" height="9" fill="#263146"/>
+      <rect x="10" y="11" width="9" height="7" fill="#efcdb6"/>
+      <rect x="11" y="18" width="8" height="5" fill="#f4f6f7"/>
+      <rect x="10" y="23" width="12" height="8" fill="#2f6c63"/>
+      <rect x="15" y="19" width="2" height="10" fill="#29323c"/>
+      <rect x="11" y="32" width="5" height="8" fill="#2d3340"/>
+      <rect x="17" y="32" width="4" height="8" fill="#2d3340"/>
+      <rect x="11" y="40" width="4" height="4" fill="#1b1f29"/>
+      <rect x="17" y="40" width="4" height="4" fill="#1b1f29"/>
+    </g>
+    <g id="m-left-step1"><use href="#m-left-idle"/><rect x="11" y="32" width="5" height="7" fill="#2d3340"/><rect x="17" y="32" width="4" height="9" fill="#2d3340"/><rect x="11" y="39" width="4" height="3" fill="#1b1f29"/><rect x="17" y="41" width="4" height="3" fill="#1b1f29"/></g>
+    <g id="m-left-step2"><use href="#m-left-idle"/><rect x="11" y="32" width="5" height="9" fill="#2d3340"/><rect x="17" y="32" width="4" height="7" fill="#2d3340"/><rect x="11" y="41" width="4" height="3" fill="#1b1f29"/><rect x="17" y="39" width="4" height="3" fill="#1b1f29"/></g>
+    <g id="m-right-idle"><use href="#m-left-idle" transform="translate(32 0) scale(-1 1)"/></g>
+    <g id="m-right-step1"><use href="#m-left-step1" transform="translate(32 0) scale(-1 1)"/></g>
+    <g id="m-right-step2"><use href="#m-left-step2" transform="translate(32 0) scale(-1 1)"/></g>
+    <g id="m-up-idle">
+      <rect x="11" y="5" width="10" height="8" fill="#1b2230"/>
+      <rect x="9" y="9" width="14" height="10" fill="#263146"/>
+      <rect x="11" y="18" width="10" height="5" fill="#f4f6f7"/>
+      <rect x="8" y="23" width="16" height="8" fill="#2f6c63"/>
+      <rect x="15" y="19" width="2" height="10" fill="#29323c"/>
+      <rect x="9" y="32" width="5" height="8" fill="#2d3340"/>
+      <rect x="18" y="32" width="5" height="8" fill="#2d3340"/>
+      <rect x="10" y="40" width="4" height="4" fill="#1b1f29"/>
+      <rect x="18" y="40" width="4" height="4" fill="#1b1f29"/>
+    </g>
+    <g id="m-up-step1"><use href="#m-up-idle"/><rect x="9" y="32" width="5" height="7" fill="#2d3340"/><rect x="18" y="32" width="5" height="9" fill="#2d3340"/><rect x="9" y="39" width="4" height="4" fill="#1b1f29"/><rect x="19" y="41" width="4" height="3" fill="#1b1f29"/></g>
+    <g id="m-up-step2"><use href="#m-up-idle"/><rect x="9" y="32" width="5" height="9" fill="#2d3340"/><rect x="18" y="32" width="5" height="7" fill="#2d3340"/><rect x="10" y="41" width="4" height="3" fill="#1b1f29"/><rect x="18" y="39" width="4" height="4" fill="#1b1f29"/></g>
+  </defs>
+  <use href="#m-down-idle" x="0" y="0"/><use href="#m-down-step1" x="32" y="0"/><use href="#m-down-step2" x="64" y="0"/>
+  <use href="#m-left-idle" x="0" y="32"/><use href="#m-left-step1" x="32" y="32"/><use href="#m-left-step2" x="64" y="32"/>
+  <use href="#m-right-idle" x="0" y="64"/><use href="#m-right-step1" x="32" y="64"/><use href="#m-right-step2" x="64" y="64"/>
+  <use href="#m-up-idle" x="0" y="96"/><use href="#m-up-step1" x="32" y="96"/><use href="#m-up-step2" x="64" y="96"/>
+</svg>

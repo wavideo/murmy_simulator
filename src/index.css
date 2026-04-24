@@ -1,0 +1,43 @@
+@import "tailwindcss";
+
+:root {
+  color: #f8ede3;
+  background:
+    radial-gradient(circle at top left, rgba(245, 169, 103, 0.22), transparent 28%),
+    radial-gradient(circle at top right, rgba(105, 143, 216, 0.18), transparent 24%),
+    linear-gradient(180deg, #1b1720 0%, #0f1725 100%);
+  font-family: "Pretendard Variable", "Pretendard", "Avenir Next", sans-serif;
+}
+
+html,
+body,
+#root {
+  min-height: 100%;
+}
+
+body {
+  margin: 0;
+  cursor: none;
+  user-select: none;
+}
+
+button,
+select,
+input,
+textarea,
+[role="button"] {
+  font: inherit;
+  cursor: none !important;
+}
+
+canvas {
+  image-rendering: pixelated;
+}
+
+* {
+  cursor: none !important;
+}
+
+*::selection {
+  background: transparent;
+}

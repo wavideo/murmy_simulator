@@ -1,0 +1,51 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 96 128" width="96" height="128">
+  <rect width="96" height="128" fill="#00ff00"/>
+  <defs>
+    <g id="s-down-idle">
+      <rect x="11" y="5" width="10" height="8" fill="#1e1c22"/>
+      <rect x="9" y="10" width="14" height="8" fill="#2c2830"/>
+      <rect x="10" y="11" width="12" height="7" fill="#efc7ad"/>
+      <rect x="11" y="18" width="10" height="5" fill="#f5efe6"/>
+      <rect x="8" y="23" width="16" height="8" fill="#b98b2d"/>
+      <rect x="10" y="31" width="12" height="1" fill="#443124"/>
+      <rect x="9" y="32" width="5" height="8" fill="#332b2c"/>
+      <rect x="18" y="32" width="5" height="8" fill="#332b2c"/>
+      <rect x="10" y="40" width="4" height="4" fill="#201a1b"/>
+      <rect x="18" y="40" width="4" height="4" fill="#201a1b"/>
+    </g>
+    <g id="s-down-step1"><use href="#s-down-idle"/><rect x="9" y="32" width="5" height="7" fill="#332b2c"/><rect x="18" y="32" width="5" height="9" fill="#332b2c"/><rect x="9" y="39" width="4" height="4" fill="#201a1b"/><rect x="19" y="41" width="4" height="3" fill="#201a1b"/></g>
+    <g id="s-down-step2"><use href="#s-down-idle"/><rect x="9" y="32" width="5" height="9" fill="#332b2c"/><rect x="18" y="32" width="5" height="7" fill="#332b2c"/><rect x="10" y="41" width="4" height="3" fill="#201a1b"/><rect x="18" y="39" width="4" height="4" fill="#201a1b"/></g>
+    <g id="s-left-idle">
+      <rect x="11" y="5" width="8" height="8" fill="#1e1c22"/>
+      <rect x="9" y="9" width="11" height="9" fill="#2c2830"/>
+      <rect x="10" y="11" width="9" height="7" fill="#efc7ad"/>
+      <rect x="11" y="18" width="8" height="5" fill="#f5efe6"/>
+      <rect x="10" y="23" width="12" height="8" fill="#b98b2d"/>
+      <rect x="11" y="32" width="5" height="8" fill="#332b2c"/>
+      <rect x="17" y="32" width="4" height="8" fill="#332b2c"/>
+      <rect x="11" y="40" width="4" height="4" fill="#201a1b"/>
+      <rect x="17" y="40" width="4" height="4" fill="#201a1b"/>
+    </g>
+    <g id="s-left-step1"><use href="#s-left-idle"/><rect x="11" y="32" width="5" height="7" fill="#332b2c"/><rect x="17" y="32" width="4" height="9" fill="#332b2c"/><rect x="11" y="39" width="4" height="3" fill="#201a1b"/><rect x="17" y="41" width="4" height="3" fill="#201a1b"/></g>
+    <g id="s-left-step2"><use href="#s-left-idle"/><rect x="11" y="32" width="5" height="9" fill="#332b2c"/><rect x="17" y="32" width="4" height="7" fill="#332b2c"/><rect x="11" y="41" width="4" height="3" fill="#201a1b"/><rect x="17" y="39" width="4" height="3" fill="#201a1b"/></g>
+    <g id="s-right-idle"><use href="#s-left-idle" transform="translate(32 0) scale(-1 1)"/></g>
+    <g id="s-right-step1"><use href="#s-left-step1" transform="translate(32 0) scale(-1 1)"/></g>
+    <g id="s-right-step2"><use href="#s-left-step2" transform="translate(32 0) scale(-1 1)"/></g>
+    <g id="s-up-idle">
+      <rect x="11" y="5" width="10" height="8" fill="#1e1c22"/>
+      <rect x="9" y="9" width="14" height="10" fill="#2c2830"/>
+      <rect x="11" y="18" width="10" height="5" fill="#f5efe6"/>
+      <rect x="8" y="23" width="16" height="8" fill="#b98b2d"/>
+      <rect x="9" y="32" width="5" height="8" fill="#332b2c"/>
+      <rect x="18" y="32" width="5" height="8" fill="#332b2c"/>
+      <rect x="10" y="40" width="4" height="4" fill="#201a1b"/>
+      <rect x="18" y="40" width="4" height="4" fill="#201a1b"/>
+    </g>
+    <g id="s-up-step1"><use href="#s-up-idle"/><rect x="9" y="32" width="5" height="7" fill="#332b2c"/><rect x="18" y="32" width="5" height="9" fill="#332b2c"/><rect x="9" y="39" width="4" height="4" fill="#201a1b"/><rect x="19" y="41" width="4" height="3" fill="#201a1b"/></g>
+    <g id="s-up-step2"><use href="#s-up-idle"/><rect x="9" y="32" width="5" height="9" fill="#332b2c"/><rect x="18" y="32" width="5" height="7" fill="#332b2c"/><rect x="10" y="41" width="4" height="3" fill="#201a1b"/><rect x="18" y="39" width="4" height="4" fill="#201a1b"/></g>
+  </defs>
+  <use href="#s-down-idle" x="0" y="0"/><use href="#s-down-step1" x="32" y="0"/><use href="#s-down-step2" x="64" y="0"/>
+  <use href="#s-left-idle" x="0" y="32"/><use href="#s-left-step1" x="32" y="32"/><use href="#s-left-step2" x="64" y="32"/>
+  <use href="#s-right-idle" x="0" y="64"/><use href="#s-right-step1" x="32" y="64"/><use href="#s-right-step2" x="64" y="64"/>
+  <use href="#s-up-idle" x="0" y="96"/><use href="#s-up-step1" x="32" y="96"/><use href="#s-up-step2" x="64" y="96"/>
+</svg>
