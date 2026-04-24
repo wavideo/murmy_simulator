@@ -1,10 +1,8 @@
 import { useEffect, useRef, useState } from "react";
 import {
   BookOpen,
-  Clock3,
   DoorOpen,
   Footprints,
-  Menu,
   MessageSquare,
   RefreshCcw,
   ScrollText,
@@ -12,6 +10,8 @@ import {
   Send,
   Shield,
   Users,
+  Volume2,
+  VolumeX,
 } from "lucide-react";
 import mummyCharacterTemplate from "../assets/mummy-character-template.jpeg";
 import mummySpaceTemplate from "../assets/mummy-space-template.jpg";
@@ -20,6 +20,7 @@ import defaultBgm from "../assets/audio/default-bgm.wav";
 const STORAGE_KEY = "multiverse-boardgame-react-state-v1";
 const STAGE_WIDTH = 1920;
 const STAGE_HEIGHT = 1080;
+const STAGE_ASPECT_RATIO = STAGE_WIDTH / STAGE_HEIGHT;
 const TABLE_SAFE_LEFT = 300;
 const TABLE_SAFE_TOP = 120;
 const TABLE_SAFE_RIGHT = 1620;
@@ -30,10 +31,16 @@ const SPRITE_FRAME_COUNT = 5;
 const SPRITE_ROWS = { down: 0, left: 1, right: 2, up: 3 };
 const PLAYER_STEP = 14;
 const HAND_DROP_MIN_DISTANCE = 16;
+const WALK_CONFIRM_DISTANCE = 26;
 const JUMP_DURATION = 210;
 const MOVE_TICK_MS = 40;
 const TAKE_ANIMATION_MS = 260;
 const SPEECH_BUBBLE_DURATION = 4000;
+const GM_NOTICE_DURATION = 6500;
+const SYSTEM_NOTICE_DURATION = 4200;
+const CHAT_FADE_DELAY_MS = 1500;
+const CHAT_FADE_DURATION_MS = 3500;
+const CARD_ATTENTION_MS = 3000;
 const BOARD_CARD_WIDTH = 45;
 const BOARD_CARD_HEIGHT = 60;
 const CHARACTER_KEY_TOLERANCE = 70;
@@ -95,7 +102,7 @@ const characterProfiles = {
   },
   p3: {
     characterName: "서윤 벨",
-    tagline: "정황의 흐름을 읽는 감정 추적자",
+    tagline: "정확의 흐름을 읽는 감정 추적자",
     bio: "식탁 위의 사소한 어긋남에서 관계의 균열을 읽어내는 인물. 분위기를 읽는 데 능하고, 사람들의 거짓말에 특히 예민하다.",
     storybook: "",
   },
@@ -156,27 +163,35 @@ function createInitialState() {
     documentModalType: null,
     tableActionCardId: null,
     pendingAction: null,
+    storybookModalPlayerId: null,
+    storybookPageIndex: 0,
     selectedRoomId: "study",
     mapSize: { width: STAGE_WIDTH, height: STAGE_HEIGHT },
     stopwatchLabel: "조사 페이즈",
     stopwatchStartedAt: null,
     stopwatchElapsedMs: 0,
-    timeMode: "stopwatch",
+    timeMode: "timer",
     timerDurationSec: 300,
+    timerPanelDismissed: false,
     walkTarget: null,
+    pendingWalkTarget: null,
     movementBounds: { left: TABLE_SAFE_LEFT, top: TABLE_SAFE_TOP, right: TABLE_SAFE_RIGHT, bottom: TABLE_SAFE_BOTTOM },
-    bgmPlaying: false,
+    bgmPlaying: true,
+    bgmVolume: 0.6,
+    bgmMuted: false,
     decisionSession: null,
+    lastDecisionOutcome: null,
+    lastDecisionModalOpen: false,
     rooms: [
       { id: "study", name: "서재", x: 400, y: 118, width: 382, height: 323 },
       { id: "dining", name: "식당", x: 1315, y: 118, width: 374, height: 323 },
       { id: "garden", name: "정원", x: 1315, y: 575, width: 374, height: 287 },
     ],
     players: [
-      { id: "p1", name: "하린", role: "PL", appearance: { ...defaultAppearanceByPlayer.p1 }, facing: "down", stepCycle: 0, lastMovedAt: 0, jumpUntil: 0, x: 930, y: 520, currentRoom: "lobby", joinedRoomAt: { lobby: sessionStart } },
-      { id: "p2", name: "민준", role: "PL", appearance: { ...defaultAppearanceByPlayer.p2 }, facing: "down", stepCycle: 0, lastMovedAt: 0, jumpUntil: 0, x: 585, y: 258, currentRoom: "study", joinedRoomAt: { study: sessionStart } },
-      { id: "p3", name: "서윤", role: "PL", appearance: { ...defaultAppearanceByPlayer.p3 }, facing: "down", stepCycle: 0, lastMovedAt: 0, jumpUntil: 0, x: 1492, y: 258, currentRoom: "dining", joinedRoomAt: { dining: sessionStart } },
-      { id: "p4", name: "도윤", role: "PL", appearance: { ...defaultAppearanceByPlayer.p4 }, facing: "down", stepCycle: 0, lastMovedAt: 0, jumpUntil: 0, x: 1508, y: 715, currentRoom: "garden", joinedRoomAt: { garden: sessionStart } },
+      { id: "p1", name: "하린 에버모어", role: "PL", appearance: { ...defaultAppearanceByPlayer.p1 }, facing: "down", stepCycle: 0, lastMovedAt: 0, jumpUntil: 0, x: 930, y: 520, currentRoom: "lobby", joinedRoomAt: { lobby: sessionStart } },
+      { id: "p2", name: "민준 헤일", role: "PL", appearance: { ...defaultAppearanceByPlayer.p2 }, facing: "down", stepCycle: 0, lastMovedAt: 0, jumpUntil: 0, x: 585, y: 258, currentRoom: "study", joinedRoomAt: { study: sessionStart } },
+      { id: "p3", name: "서윤 벨", role: "PL", appearance: { ...defaultAppearanceByPlayer.p3 }, facing: "down", stepCycle: 0, lastMovedAt: 0, jumpUntil: 0, x: 1492, y: 258, currentRoom: "dining", joinedRoomAt: { dining: sessionStart } },
+      { id: "p4", name: "도윤 클라크", role: "PL", appearance: { ...defaultAppearanceByPlayer.p4 }, facing: "down", stepCycle: 0, lastMovedAt: 0, jumpUntil: 0, x: 1508, y: 715, currentRoom: "garden", joinedRoomAt: { garden: sessionStart } },
       { id: "p5", name: "GM 아델", role: "GM", appearance: { ...defaultAppearanceByPlayer.p5 }, facing: "down", stepCycle: 0, lastMovedAt: 0, jumpUntil: 0, x: 1120, y: 330, currentRoom: "lobby", joinedRoomAt: { lobby: sessionStart } },
     ],
     cards: [
@@ -186,6 +201,7 @@ function createInitialState() {
       { id: "c4", title: "단서 D", summary: "정원 흙 묻은 장갑", description: "겉면에는 정원 흙이, 안쪽에는 은은한 향수가 남아 있다. 누군가 급하게 벗어 던진 흔적이다.", x: 1270, y: 425, isFaceUp: false, handFaceUp: false, ownerId: null, type: "소지품" },
       { id: "c5", title: "단서 E", summary: "가계도 일부", description: "가문의 상속 순서를 표시한 문서다. 최근에 특정 이름이 지워지고 덧써진 흔적이 있다.", x: 1440, y: 400, isFaceUp: false, handFaceUp: false, ownerId: null, type: "비밀문서" },
     ],
+    cardAttention: {},
     messages: [
       { id: "m1", roomId: "lobby", senderId: "p1", text: "브리핑 전에 전원 로비로 모여 주세요.", timestamp: Date.now() - 1000 * 60 * 8 },
       { id: "m2", roomId: "study", senderId: "p2", text: "서재 책장 뒤에 숨겨진 흔적이 있어.", timestamp: Date.now() - 1000 * 60 * 4 },
@@ -219,6 +235,21 @@ function normalizeDecisionSession(session) {
   };
 }
 
+function normalizeDecisionOutcome(outcome) {
+  if (!outcome || typeof outcome !== "object") return null;
+  const type = outcome.type === "nomination" ? "nomination" : outcome.type === "vote" ? "vote" : null;
+  if (!type) return null;
+  const completedAt = typeof outcome.completedAt === "number" ? outcome.completedAt : Date.now();
+  const result = outcome.result ?? null;
+  if (!result || typeof result !== "object") return null;
+  return { type, completedAt, result };
+}
+
+function normalizeMapSize(mapSize) {
+  const width = clamp(typeof mapSize?.width === "number" ? Math.round(mapSize.width) : STAGE_WIDTH, 960, 3200);
+  return { width, height: Math.round(width / STAGE_ASPECT_RATIO) };
+}
+
 function loadState() {
   const saved = localStorage.getItem(STORAGE_KEY);
   if (!saved) return normalizeState(createInitialState());
@@ -235,27 +266,34 @@ function normalizeState(state) {
     tableActionCardId: typeof state.tableActionCardId === "string" ? state.tableActionCardId : null,
     profileModalPlayerId: typeof state.profileModalPlayerId === "string" ? state.profileModalPlayerId : null,
     documentModalType: typeof state.documentModalType === "string" ? state.documentModalType : null,
+    storybookModalPlayerId: typeof state.storybookModalPlayerId === "string" ? state.storybookModalPlayerId : null,
+    storybookPageIndex: typeof state.storybookPageIndex === "number" ? clamp(Math.floor(state.storybookPageIndex), 0, 999) : 0,
     selectedRoomId: typeof state.selectedRoomId === "string" ? state.selectedRoomId : "study",
-    mapSize: {
-      width: typeof state.mapSize?.width === "number" ? state.mapSize.width : STAGE_WIDTH,
-      height: typeof state.mapSize?.height === "number" ? state.mapSize.height : STAGE_HEIGHT,
-    },
+    mapSize: normalizeMapSize(state.mapSize),
     stopwatchLabel: typeof state.stopwatchLabel === "string" ? state.stopwatchLabel : "조사 페이즈",
     stopwatchStartedAt: typeof state.stopwatchStartedAt === "number" ? state.stopwatchStartedAt : null,
     stopwatchElapsedMs: typeof state.stopwatchElapsedMs === "number" ? state.stopwatchElapsedMs : 0,
-    timeMode: state.timeMode === "timer" ? "timer" : "stopwatch",
+    timeMode: "timer",
     timerDurationSec: typeof state.timerDurationSec === "number" ? state.timerDurationSec : 300,
+    timerPanelDismissed: false,
     walkTarget: state.walkTarget && typeof state.walkTarget.x === "number" && typeof state.walkTarget.y === "number" ? state.walkTarget : null,
+    pendingWalkTarget: state.pendingWalkTarget && typeof state.pendingWalkTarget.x === "number" && typeof state.pendingWalkTarget.y === "number" ? state.pendingWalkTarget : null,
+    cardAttention: state.cardAttention && typeof state.cardAttention === "object" ? state.cardAttention : {},
     movementBounds: {
       left: typeof state.movementBounds?.left === "number" ? state.movementBounds.left : TABLE_SAFE_LEFT,
       top: typeof state.movementBounds?.top === "number" ? state.movementBounds.top : TABLE_SAFE_TOP,
       right: typeof state.movementBounds?.right === "number" ? state.movementBounds.right : TABLE_SAFE_RIGHT,
       bottom: typeof state.movementBounds?.bottom === "number" ? state.movementBounds.bottom : TABLE_SAFE_BOTTOM,
     },
-    bgmPlaying: Boolean(state.bgmPlaying),
+    bgmPlaying: true,
+    bgmVolume: typeof state.bgmVolume === "number" ? clamp(state.bgmVolume, 0, 1) : 0.6,
+    bgmMuted: Boolean(state.bgmMuted),
     decisionSession: normalizeDecisionSession(state.decisionSession),
+    lastDecisionOutcome: normalizeDecisionOutcome(state.lastDecisionOutcome),
+    lastDecisionModalOpen: Boolean(state.lastDecisionModalOpen),
     players: state.players.map((player) => ({
       ...player,
+      name: characterProfiles[player.id]?.characterName ?? (typeof player.name === "string" ? player.name : "플레이어"),
       role: player.role === "GM" ? "GM" : "PL",
       appearance: normalizeAppearance(player.id, player.appearance),
       facing: player.facing ?? "down",
@@ -273,20 +311,29 @@ function App() {
   const [dragCardId, setDragCardId] = useState(null);
   const [dragPreview, setDragPreview] = useState(null);
   const [dragPointer, setDragPointer] = useState(null);
+  const [dragHint, setDragHint] = useState(null);
   const [takeAnimation, setTakeAnimation] = useState(null);
   const [cursorState, setCursorState] = useState({ x: 0, y: 0, visible: false, interactive: false });
+  const [cursorTooltipText, setCursorTooltipText] = useState("");
+  const [viewportPointer, setViewportPointer] = useState({ x: 0, y: 0, visible: false });
   const [isChatFocused, setIsChatFocused] = useState(false);
+  const [lastChatActivityAt, setLastChatActivityAt] = useState(Date.now());
   const [hoveredHandCardId, setHoveredHandCardId] = useState(null);
+  const [hoveredProfileCardId, setHoveredProfileCardId] = useState(null);
   const [viewportScale, setViewportScale] = useState(1);
   const [isAltZooming, setIsAltZooming] = useState(false);
   const [cursorFocus, setCursorFocus] = useState({ x: STAGE_WIDTH / 2, y: STAGE_HEIGHT / 2 });
   const [gmPeekFaceUp, setGmPeekFaceUp] = useState(false);
   const [resizeSession, setResizeSession] = useState(null);
   const [playerDragSession, setPlayerDragSession] = useState(null);
-  const [rightPanelOpen, setRightPanelOpen] = useState(false);
+  const [rightPanelOpen] = useState(false);
   const [mapEditMode, setMapEditMode] = useState(false);
   const [modalZoomFocus, setModalZoomFocus] = useState(null);
   const [now, setNow] = useState(Date.now());
+  const [isTimerEditing, setIsTimerEditing] = useState(false);
+  const [timerDraft, setTimerDraft] = useState({ label: "", h: 0, m: 5, s: 0 });
+  const [timerDragSession, setTimerDragSession] = useState(null);
+  const [actionPopover, setActionPopover] = useState(null);
   const stageRef = useRef(null);
   const viewportRef = useRef(null);
   const bgmAudioRef = useRef(null);
@@ -298,17 +345,23 @@ function App() {
   const suppressClickRef = useRef(false);
   const pressedKeysRef = useRef(new Set());
   const jumpHeldRef = useRef(false);
+  const prevStopwatchStartedAtRef = useRef(null);
+  const allowChatFocusRef = useRef(false);
   const activePlayer = getActivePlayer(state);
+  const isCardAttentionActive = (cardId) => (state.cardAttention?.[cardId] ?? 0) > now;
   const visibleMessages = state.messages
     .filter((message) => message.roomId === activePlayer.currentRoom && message.timestamp >= (activePlayer.joinedRoomAt?.[activePlayer.currentRoom] ?? 0))
     .sort((a, b) => a.timestamp - b.timestamp);
   const tableCards = state.cards.filter((card) => card.ownerId === null);
   const activeHandCards = state.cards.filter((card) => card.ownerId === activePlayer.id);
+  const activeStorybookText = characterProfiles[activePlayer.id]?.storybook ?? "";
   const otherHands = state.players.filter((player) => player.id !== activePlayer.id && player.role !== "GM");
   const modalCard = state.cards.find((card) => card.id === state.modalCardId) ?? null;
   const dragCard = dragCardId ? state.cards.find((card) => card.id === dragCardId) ?? null : null;
   const hoveredHandCard = hoveredHandCardId ? state.cards.find((card) => card.id === hoveredHandCardId && card.ownerId === activePlayer.id) ?? null : null;
+  const hoveredProfileCard = hoveredProfileCardId ? state.cards.find((card) => card.id === hoveredProfileCardId) ?? null : null;
   const profilePlayer = state.players.find((player) => player.id === state.profileModalPlayerId) ?? null;
+  const storybookPlayer = state.players.find((player) => player.id === state.storybookModalPlayerId) ?? null;
   const activeRoomZone = state.rooms.find((room) => room.id === activePlayer.currentRoom) ?? null;
   const activePlayerProfile = characterProfiles[activePlayer.id] ?? null;
   const selectedRoom = state.rooms.find((room) => room.id === state.selectedRoomId) ?? state.rooms[0];
@@ -317,12 +370,15 @@ function App() {
   const stageWidth = state.mapSize.width;
   const stageHeight = state.mapSize.height;
   const elapsedTimerMs = state.stopwatchStartedAt ? state.stopwatchElapsedMs + (now - state.stopwatchStartedAt) : state.stopwatchElapsedMs;
-  const effectiveTimeMs = state.timeMode === "timer" ? Math.max(0, state.timerDurationSec * 1000 - elapsedTimerMs) : elapsedTimerMs;
+  const effectiveTimeMs = Math.max(0, state.timerDurationSec * 1000 - elapsedTimerMs);
   const nonGmPlayers = state.players.filter((player) => player.role !== "GM");
   const activeDecision = state.decisionSession;
   const activeDecisionResponse = activeDecision ? activeDecision.responses?.[activePlayer.id] ?? null : null;
   const isDecisionParticipant = activePlayer.role !== "GM";
   const hasCollectingDecision = activeDecision?.status === "collecting";
+  const lastDecisionOutcome = state.lastDecisionOutcome;
+  const hasRunningTimer = Boolean(state.stopwatchStartedAt);
+  const showTimerPanel = true;
   const contactCard = getContactCard(tableCards, activePlayer);
   const visibleSpeechByPlayer = Object.fromEntries(
     state.messages
@@ -336,6 +392,20 @@ function App() {
       }, [])
       .map((message) => [message.senderId, truncateSpeech(message.text)]),
   );
+  const gmNoticeMessage = state.messages
+    .filter((message) => message.roomId === activePlayer.currentRoom && now - message.timestamp <= GM_NOTICE_DURATION)
+    .map((message) => ({ message, sender: state.players.find((player) => player.id === message.senderId) ?? null }))
+    .filter((item) => item.sender?.role === "GM")
+    .sort((a, b) => a.message.timestamp - b.message.timestamp);
+  const systemNotices = state.logs
+    .filter((log) => now - log.timestamp <= SYSTEM_NOTICE_DURATION)
+    .sort((a, b) => a.timestamp - b.timestamp);
+  const activeNotices = [
+    ...gmNoticeMessage.map((item) => ({ id: item.message.id, timestamp: item.message.timestamp, text: item.message.text, kind: "gm" })),
+    ...systemNotices.map((log) => ({ id: log.id, timestamp: log.timestamp, text: log.text, kind: "system" })),
+  ].sort((a, b) => a.timestamp - b.timestamp);
+  const visibleNotices = activeNotices.slice(-3);
+  const bottomStackNotices = [...visibleNotices].reverse();
 
   useEffect(() => {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
@@ -349,16 +419,98 @@ function App() {
   }, []);
 
   useEffect(() => {
+    setState((current) => {
+      const attention = current.cardAttention;
+      if (!attention) return current;
+      const entries = Object.entries(attention);
+      if (!entries.length) return current;
+      let shouldPrune = false;
+      for (const [, until] of entries) {
+        if (typeof until !== "number" || until <= now) {
+          shouldPrune = true;
+          break;
+        }
+      }
+      if (!shouldPrune) return current;
+      const nextAttention = {};
+      for (const [cardId, until] of entries) {
+        if (typeof until === "number" && until > now) nextAttention[cardId] = until;
+      }
+      return { ...current, cardAttention: nextAttention };
+    });
+  }, [now]);
+
+  useEffect(() => {
+    prevStopwatchStartedAtRef.current = state.stopwatchStartedAt;
+  }, [state.stopwatchStartedAt]);
+
+  useEffect(() => {
+    if (!timerDragSession) return;
+    const handleMove = (event) => {
+      setTimerDraft((current) => {
+        const deltaY = timerDragSession.startY - event.clientY;
+        const steps = Math.trunc(deltaY / 8);
+        if (!steps) return current;
+        const nextValue = clamp(timerDragSession.startValue + steps, timerDragSession.min, timerDragSession.max);
+        return { ...current, [timerDragSession.field]: nextValue };
+      });
+    };
+    const handleUp = () => {
+      setTimerDragSession(null);
+    };
+    window.addEventListener("pointermove", handleMove);
+    window.addEventListener("pointerup", handleUp, { once: true });
+    return () => {
+      window.removeEventListener("pointermove", handleMove);
+      window.removeEventListener("pointerup", handleUp);
+    };
+  }, [timerDragSession]);
+
+  const openTimerEditor = () => {
+    setState((current) => {
+      if (current.stopwatchStartedAt) {
+        return { ...current, stopwatchStartedAt: null, stopwatchElapsedMs: current.stopwatchElapsedMs + (Date.now() - current.stopwatchStartedAt) };
+      }
+      return current;
+    });
+    const total = clamp(Math.floor(state.timerDurationSec), 0, 359999);
+    const h = Math.floor(total / 3600);
+    const m = Math.floor((total % 3600) / 60);
+    const s = total % 60;
+    setTimerDraft({ label: state.stopwatchLabel || "타이머", h, m, s });
+    setIsTimerEditing(true);
+  };
+
+  const applyTimerDraft = () => {
+    const h = clamp(Number(timerDraft.h) || 0, 0, 99);
+    const m = clamp(Number(timerDraft.m) || 0, 0, 59);
+    const s = clamp(Number(timerDraft.s) || 0, 0, 59);
+    const total = h * 3600 + m * 60 + s;
+    setState((current) => ({
+      ...current,
+      stopwatchLabel: typeof timerDraft.label === "string" ? timerDraft.label : current.stopwatchLabel,
+      timerDurationSec: clamp(total, 0, 359999),
+    }));
+    setIsTimerEditing(false);
+    setTimerDragSession(null);
+  };
+
+  const cancelTimerDraft = () => {
+    setIsTimerEditing(false);
+    setTimerDragSession(null);
+  };
+
+  useEffect(() => {
     const audio = bgmAudioRef.current;
     if (!audio) return;
+    audio.loop = true;
+    const effectiveMuted = Boolean(state.bgmMuted || state.bgmVolume <= 0);
+    audio.muted = effectiveMuted;
+    audio.volume = effectiveMuted ? 0 : clamp(state.bgmVolume, 0, 1);
     if (state.bgmPlaying) {
-      audio.loop = true;
       audio.play().catch(() => {});
-      return;
     }
-    audio.pause();
-    audio.currentTime = 0;
-  }, [state.bgmPlaying]);
+  }, [state.bgmPlaying, state.bgmMuted, state.bgmVolume]);
 
   useEffect(() => {
     const chatNode = chatScrollRef.current;
@@ -377,8 +529,19 @@ function App() {
   useEffect(() => {
     if (!modalCard) {
       setModalZoomFocus(null);
+      setCursorTooltipText("");
+      setActionPopover(null);
     }
   }, [modalCard]);
+
+  const openActionPopover = (type, event) => {
+    const target = event?.currentTarget;
+    const rect = target && typeof target.getBoundingClientRect === "function" ? target.getBoundingClientRect() : null;
+    const x = rect ? rect.left + rect.width / 2 : event?.clientX ?? window.innerWidth / 2;
+    const y = rect ? rect.top + rect.height : event?.clientY ?? window.innerHeight / 2;
+    setState((current) => ({ ...current, pendingAction: current.pendingAction === type ? null : type }));
+    setActionPopover((current) => (current?.type === type ? null : { type, x, y }));
+  };
 
   useEffect(() => {
     const updateViewportScale = () => {
@@ -407,6 +570,11 @@ function App() {
 
       if (viewportNode) {
         const viewportBounds = viewportNode.getBoundingClientRect();
+        setViewportPointer({
+          x: clamp(event.clientX - viewportBounds.left, 0, viewportBounds.width),
+          y: clamp(event.clientY - viewportBounds.top, 0, viewportBounds.height),
+          visible: true,
+        });
         const nextFocus = {
           x: clamp((event.clientX - viewportBounds.left) / Math.max(viewportScale, 0.001), 0, stageWidth),
           y: clamp((event.clientY - viewportBounds.top) / Math.max(viewportScale, 0.001), 0, stageHeight),
@@ -417,6 +585,7 @@ function App() {
 
     const handlePointerLeave = () => {
       setCursorState((current) => ({ ...current, visible: false, interactive: false }));
+      setViewportPointer((current) => ({ ...current, visible: false }));
     };
 
     window.addEventListener("pointermove", handlePointerMove);
@@ -447,8 +616,26 @@ function App() {
         }
         if (!["INPUT", "TEXTAREA", "SELECT"].includes(event.target?.tagName)) {
           event.preventDefault();
+          setState((current) => (current.pendingWalkTarget ? { ...current, pendingWalkTarget: null, walkTarget: null } : current));
+          allowChatFocusRef.current = true;
           chatInputRef.current?.focus();
         }
+        return;
+      }
+      if (event.key === "Escape") {
+        event.preventDefault();
+        event.stopPropagation();
+        setState((current) => ({
+          ...current,
+          modalCardId: null,
+          profileModalPlayerId: null,
+          documentModalType: null,
+          storybookModalPlayerId: null,
+          storybookPageIndex: 0,
+          lastDecisionModalOpen: false,
+          tableActionCardId: null,
+          pendingAction: null,
+        }));
         return;
       }
       if (["INPUT", "TEXTAREA", "SELECT"].includes(event.target?.tagName)) return;
@@ -456,17 +643,14 @@ function App() {
         event.preventDefault();
         if (!jumpHeldRef.current) {
           jumpHeldRef.current = true;
-          setState((current) => jumpPlayerState(current));
+          setState((current) => jumpPlayerState(current.pendingWalkTarget ? { ...current, pendingWalkTarget: null, walkTarget: null } : current));
         }
-        return;
-      }
-      if (event.key === "Escape") {
-        setState((current) => ({ ...current, modalCardId: null, profileModalPlayerId: null, documentModalType: null, tableActionCardId: null, pendingAction: null }));
         return;
       }
       const direction = getDirectionFromKey(event.key);
       if (!direction) return;
       event.preventDefault();
+      setState((current) => (current.pendingWalkTarget ? { ...current, pendingWalkTarget: null, walkTarget: null } : current));
       pressedKeysRef.current.add(event.key.toLowerCase());
     };
 
@@ -503,7 +687,7 @@ function App() {
     const moveTimer = window.setInterval(() => {
       const vector = getMovementVectorFromKeys(pressedKeysRef.current);
       if (vector) {
-        setState((current) => movePlayerState(current, vector.dx, vector.dy));
+        setState((current) => movePlayerState(current.pendingWalkTarget ? { ...current, pendingWalkTarget: null, walkTarget: null } : current, vector.dx, vector.dy));
         return;
       }
       setState((current) => movePlayerTowardTargetState(current));
@@ -531,6 +715,27 @@ function App() {
       });
       setDragCardId(dragPointer.cardId);
       setDragPreview({ x: event.clientX, y: event.clientY });
+
+      const finalTarget = document.elementFromPoint(event.clientX, event.clientY);
+      const handDropTarget = finalTarget?.closest?.("[data-hand-dropzone='true']");
+      const stageDropTarget = finalTarget?.closest?.("[data-stage-dropzone='true']");
+      const playerDropTarget = finalTarget?.closest?.("[data-player-dropzone]");
+      const dragCardLocal = state.cards.find((item) => item.id === dragPointer.cardId) ?? null;
+      let nextHint = null;
+      let nextTargetPlayerId = null;
+
+      if (dragCardLocal?.ownerId === null) {
+        if (handDropTarget) nextHint = "내 손에 가져오기";
+      } else if (dragCardLocal?.ownerId === activePlayer.id) {
+        if (playerDropTarget) {
+          nextHint = "양도하기";
+          nextTargetPlayerId = playerDropTarget.getAttribute("data-player-dropzone");
+        } else if (stageDropTarget) {
+          nextHint = "덮은 채로 내려놓기";
+        }
+      }
+
+      setDragHint(nextHint ? { text: nextHint, targetPlayerId: nextTargetPlayerId } : null);
     };
 
     const handlePointerUp = (event) => {
@@ -540,13 +745,32 @@ function App() {
       const handDropTarget = finalTarget?.closest?.("[data-hand-dropzone='true']");
       const handCardTarget = finalTarget?.closest?.("[data-hand-card-id]");
       const stageDropTarget = finalTarget?.closest?.("[data-stage-dropzone='true']");
+      const playerDropTarget = finalTarget?.closest?.("[data-player-dropzone]");
 
-      if (dragPointer.active) {
-        suppressClickRef.current = true;
-        window.setTimeout(() => {
-          suppressClickRef.current = false;
-        }, 0);
-        if (handDropTarget) {
+        if (dragPointer.active) {
+          suppressClickRef.current = true;
+          window.setTimeout(() => {
+            suppressClickRef.current = false;
+          }, 0);
+        if (playerDropTarget) {
+          const targetPlayerId = playerDropTarget.getAttribute("data-player-dropzone");
+          if (targetPlayerId && targetPlayerId !== activePlayer.id) {
+            setState((current) => {
+              const player = getActivePlayer(current);
+              const card = current.cards.find((item) => item.id === dragPointer.cardId && item.ownerId === player.id);
+              const targetPlayer = current.players.find((item) => item.id === targetPlayerId);
+              if (!card || !targetPlayer || targetPlayer.role === "GM") return current;
+              return {
+                ...current,
+                cards: current.cards.map((item) => (item.id === dragPointer.cardId ? { ...item, ownerId: targetPlayerId } : item)),
+                cardAttention: { ...current.cardAttention, [dragPointer.cardId]: Date.now() + CARD_ATTENTION_MS },
+                logs: addLog(current.logs, `${player.name} 님이 ${card.title} 카드를 ${targetPlayer.name} 님에게 양도했습니다.`),
+                pendingAction: null,
+                modalCardId: current.modalCardId === dragPointer.cardId ? null : current.modalCardId,
+              };
+            });
+          }
+        } else if (handDropTarget) {
           const targetCardId = handCardTarget?.getAttribute("data-hand-card-id") ?? null;
           moveCardToHand(dragPointer.cardId, targetCardId);
         } else if (stageDropTarget) {
@@ -557,6 +781,7 @@ function App() {
       setDragPointer(null);
       setDragCardId(null);
       setDragPreview(null);
+      setDragHint(null);
       dragMetaRef.current = null;
     };
 
@@ -568,7 +793,7 @@ function App() {
       window.removeEventListener("pointerup", handlePointerUp);
       window.removeEventListener("pointercancel", handlePointerUp);
     };
-  }, [dragPointer]);
+  }, [dragPointer, activePlayer.id, activePlayer.currentRoom, state.cards]);
 
   useEffect(() => {
     if (!resizeSession) return undefined;
@@ -626,6 +851,7 @@ function App() {
     event.preventDefault();
     const text = chatDraft.trim();
     if (!text) return;
+    setLastChatActivityAt(Date.now());
     setState((current) => {
       const player = getActivePlayer(current);
       return {
@@ -634,22 +860,65 @@ function App() {
           ...current.messages,
           { id: `m-${crypto.randomUUID()}`, roomId: player.currentRoom, senderId: player.id, text, timestamp: Date.now() },
         ],
-        logs: addLog(current.logs, `${player.name} 님이 ${getRoomName(current.rooms, player.currentRoom)}에서 메시지를 보냈습니다.`),
+        logs: current.logs,
       };
     });
     setChatDraft("");
   };
 
   const openCard = (cardId) => {
-    setState((current) => ({ ...current, modalCardId: cardId, profileModalPlayerId: null, documentModalType: null, tableActionCardId: null, pendingAction: null }));
+    setState((current) => ({
+      ...current,
+      modalCardId: cardId,
+      profileModalPlayerId: null,
+      documentModalType: null,
+      storybookModalPlayerId: null,
+      storybookPageIndex: 0,
+      pendingWalkTarget: null,
+      tableActionCardId: null,
+      pendingAction: null,
+    }));
+  };
+
+  const openHandCard = (cardId) => {
+    setState((current) => {
+      const player = getActivePlayer(current);
+      const card = current.cards.find((item) => item.id === cardId) ?? null;
+      if (!card) return current;
+      const shouldFlipFaceUp = card.ownerId === player.id && !card.handFaceUp;
+      return {
+        ...current,
+        cards: shouldFlipFaceUp
+          ? current.cards.map((item) => (item.id === cardId ? { ...item, handFaceUp: true } : item))
+          : current.cards,
+        modalCardId: cardId,
+        profileModalPlayerId: null,
+        documentModalType: null,
+        storybookModalPlayerId: null,
+        storybookPageIndex: 0,
+        pendingWalkTarget: null,
+        tableActionCardId: null,
+        pendingAction: null,
+      };
+    });
   };
 
   const openProfile = (playerId) => {
-    setState((current) => ({ ...current, profileModalPlayerId: playerId, modalCardId: null, documentModalType: null, tableActionCardId: null, pendingAction: null }));
+    setState((current) => ({ ...current, profileModalPlayerId: playerId, modalCardId: null, documentModalType: null, storybookModalPlayerId: null, storybookPageIndex: 0, pendingWalkTarget: null, tableActionCardId: null, pendingAction: null }));
   };
 
   const openDocument = (documentModalType) => {
-    setState((current) => ({ ...current, documentModalType, profileModalPlayerId: null, modalCardId: null, tableActionCardId: null, pendingAction: null }));
+    setState((current) => ({
+      ...current,
+      documentModalType,
+      storybookModalPlayerId: null,
+      storybookPageIndex: 0,
+      profileModalPlayerId: null,
+      modalCardId: null,
+      pendingWalkTarget: null,
+      tableActionCardId: null,
+      pendingAction: null,
+    }));
   };
 
   const toggleTableActionCard = (cardId) => {
@@ -666,9 +935,11 @@ function App() {
       const player = getActivePlayer(current);
       const card = current.cards.find((item) => item.id === cardId && item.ownerId === null);
       if (!card || player.currentRoom !== "lobby") return current;
+      const nextIsFaceUp = !card.isFaceUp;
       return {
         ...current,
         cards: current.cards.map((item) => (item.id === cardId ? { ...item, isFaceUp: !item.isFaceUp } : item)),
+        cardAttention: nextIsFaceUp ? { ...current.cardAttention, [cardId]: Date.now() + CARD_ATTENTION_MS } : current.cardAttention,
         modalCardId: current.modalCardId === cardId ? null : current.modalCardId,
         tableActionCardId: current.tableActionCardId === cardId ? null : current.tableActionCardId,
         logs: addLog(current.logs, `${player.name} 님이 ${card.title} 카드를 ${card.isFaceUp ? "비공개" : "공개"} 상태로 전환했습니다.`),
@@ -723,6 +994,7 @@ function App() {
         return {
           ...current,
           cards: current.cards.map((item) => (item.id === cardId ? { ...item, ownerId: player.id, isFaceUp: false, handFaceUp: nextCard.isFaceUp } : item)),
+          cardAttention: { ...current.cardAttention, [cardId]: Date.now() + CARD_ATTENTION_MS },
           modalCardId: current.modalCardId === cardId ? null : current.modalCardId,
           tableActionCardId: current.tableActionCardId === cardId ? null : current.tableActionCardId,
           logs: addLog(current.logs, `${player.name} 님이 ${nextCard.title} 카드를 손패로 가져갔습니다.`),
@@ -738,7 +1010,17 @@ function App() {
     const rect = stage.getBoundingClientRect();
     const targetX = clamp(((clientX - rect.left) / rect.width) * stageWidth, 0, stageWidth);
     const targetY = clamp(((clientY - rect.top) / rect.height) * stageHeight, 0, stageHeight);
-    setState((current) => ({ ...current, walkTarget: { x: targetX, y: targetY } }));
+    setState((current) => {
+      const pending = current.pendingWalkTarget;
+      const next = { x: targetX, y: targetY };
+      if (pending) {
+        const distance = Math.hypot(pending.x - next.x, pending.y - next.y);
+        if (distance <= WALK_CONFIRM_DISTANCE) {
+          return { ...current, walkTarget: next, pendingWalkTarget: null };
+        }
+      }
+      return { ...current, pendingWalkTarget: next, walkTarget: null };
+    });
   };
 
   const updateRoomValue = (roomId, key, value) => {
@@ -756,10 +1038,14 @@ function App() {
   };
 
   const updateMapSize = (key, value) => {
-    setState((current) => ({
-      ...current,
-      mapSize: { ...current.mapSize, [key]: Number(value) },
-    }));
+    setState((current) => {
+      const numericValue = Number(value);
+      const nextWidth = key === "width" ? numericValue : numericValue * STAGE_ASPECT_RATIO;
+      return {
+        ...current,
+        mapSize: normalizeMapSize({ width: nextWidth }),
+      };
+    });
   };
 
   const beginRoomResize = (event, roomId, handle) => {
@@ -811,12 +1097,14 @@ function App() {
     if (!modalCard) return;
     setState((current) => {
       const player = getActivePlayer(current);
+      const nextIsFaceUp = !modalCard.isFaceUp;
       return {
         ...current,
         cards: current.cards.map((card) => {
           if (card.id !== modalCard.id || card.ownerId !== null) return card;
           return { ...card, isFaceUp: !card.isFaceUp };
         }),
+        cardAttention: nextIsFaceUp ? { ...current.cardAttention, [modalCard.id]: Date.now() + CARD_ATTENTION_MS } : current.cardAttention,
         logs: addLog(current.logs, `${player.name} 님이 ${modalCard.title} 카드를 ${modalCard.isFaceUp ? "비공개" : "공개"} 상태로 전환했습니다.`),
       };
     });
@@ -847,6 +1135,7 @@ function App() {
             if (card.id !== modalCard.id) return card;
             return { ...card, ownerId: player.id, isFaceUp: false, handFaceUp: modalCard.isFaceUp };
           }),
+          cardAttention: { ...current.cardAttention, [modalCard.id]: Date.now() + CARD_ATTENTION_MS },
           modalCardId: null,
           logs: addLog(current.logs, `${player.name} 님이 ${modalCard.title} 카드를 손패로 가져갔습니다.`),
         };
@@ -864,12 +1153,36 @@ function App() {
           if (card.id !== modalCard.id || card.ownerId !== player.id) return card;
           return { ...card, ownerId: null, isFaceUp: faceUp, handFaceUp: false };
         }),
+        cardAttention: { ...current.cardAttention, [modalCard.id]: Date.now() + CARD_ATTENTION_MS },
         pendingAction: null,
         modalCardId: null,
         tableActionCardId: null,
         logs: addLog(current.logs, `${player.name} 님이 ${modalCard.title} 카드를 테이블에 ${faceUp ? "펼친 채" : "덮은 채"} 내려놓았습니다.`),
       };
     });
+  };
+
+  const openStorybook = () => {
+    setState((current) => ({
+      ...current,
+      storybookModalPlayerId: activePlayer.id,
+      storybookPageIndex: 0,
+      documentModalType: null,
+      modalCardId: null,
+      profileModalPlayerId: null,
+      pendingWalkTarget: null,
+      tableActionCardId: null,
+      pendingAction: null,
+    }));
+  };
+
+  const openSharedRulebook = () => {
+    openDocument("shared-rulebook");
+  };
+
+  const openGmRulebook = () => {
+    if (activePlayer.role !== "GM") return;
+    openDocument("gm-rulebook");
   };
 
   const dropCardAtPoint = (cardId, clientX, clientY) => {
@@ -891,6 +1204,7 @@ function App() {
         return {
           ...current,
           cards: current.cards.map((item) => (item.id === cardId ? { ...item, ownerId: null, isFaceUp: false, handFaceUp: false, x: targetX, y: targetY } : item)),
+          cardAttention: { ...current.cardAttention, [cardId]: Date.now() + CARD_ATTENTION_MS },
           modalCardId: current.modalCardId === cardId ? null : current.modalCardId,
           pendingAction: null,
           tableActionCardId: null,
@@ -903,7 +1217,7 @@ function App() {
           ...current,
           cards: current.cards.map((item) => (item.id === cardId ? { ...item, x: targetX, y: targetY } : item)),
           tableActionCardId: null,
-          logs: addLog(current.logs, `${player.name} 님이 ${card.title} 카드 위치를 옮겼습니다.`),
+          logs: current.logs,
         };
       }
 
@@ -976,13 +1290,14 @@ function App() {
     setState((current) => {
       const player = getActivePlayer(current);
       const targetPlayer = current.players.find((item) => item.id === targetPlayerId);
-      if (!targetPlayer) return current;
+      if (!targetPlayer || targetPlayer.role === "GM") return current;
       return {
         ...current,
         cards: current.cards.map((card) => {
           if (card.id !== modalCard.id || card.ownerId !== player.id) return card;
           return { ...card, ownerId: targetPlayer.id };
         }),
+        cardAttention: { ...current.cardAttention, [modalCard.id]: Date.now() + CARD_ATTENTION_MS },
         pendingAction: null,
         modalCardId: null,
         tableActionCardId: null,
@@ -998,13 +1313,169 @@ function App() {
         ? Boolean(modalCard.handFaceUp)
         : activePlayer.role === "GM" ? gmPeekFaceUp : false
     : false;
-  const isMapZooming = isAltZooming && !modalCard;
-  const totalStageScale = viewportScale * (isMapZooming ? 5 : 1);
-  const stageTransformOrigin = isMapZooming ? `${cursorFocus.x}px ${cursorFocus.y}px` : "center center";
+  const hasOverlayModal = Boolean(
+    modalCard
+    || profilePlayer
+    || storybookPlayer
+    || state.documentModalType
+    || (activeDecision && activeDecision.status === "complete")
+    || (activeDecision && isDecisionParticipant && activeDecision.status === "collecting" && !activeDecisionResponse),
+  );
+  const isFieldLensZooming = isAltZooming && !hasOverlayModal;
+  const totalStageScale = 1;
+  const stageTransformOrigin = "center center";
   const modalCardScale = 1;
+  const chatFadeProgress = isChatFocused
+    ? 0
+    : Math.max(0, (now - lastChatActivityAt - CHAT_FADE_DELAY_MS) / Math.max(CHAT_FADE_DURATION_MS, 1));
+  const chatOpacity = isChatFocused ? 1 : clamp(1 - chatFadeProgress, 0, 1);
+
+  const renderStageScene = ({ isLens }) => (
+    <>
+      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(255,255,255,0.06),transparent_55%)]" />
+
+      {state.pendingWalkTarget ? (
+        <div
+          className="pointer-events-none absolute z-[6] -translate-x-1/2 -translate-y-1/2"
+          style={{ left: state.pendingWalkTarget.x, top: state.pendingWalkTarget.y }}
+        >
+          <div className="absolute left-1/2 top-0 -translate-x-1/2 -translate-y-[130%] whitespace-nowrap rounded-full border border-white/10 bg-black/55 px-3 py-1 text-[12px] font-semibold text-white/90 shadow-[0_12px_24px_rgba(0,0,0,0.22)] backdrop-blur-sm">
+            이동하기
+          </div>
+          <div className="h-10 w-10 rounded-full border-2 border-amber-200/90 bg-amber-100/10 shadow-[0_0_0_6px_rgba(253,230,138,0.12)]" />
+          <div className="absolute left-1/2 top-1/2 h-2 w-2 -translate-x-1/2 -translate-y-1/2 rounded-full bg-amber-100/80" />
+        </div>
+      ) : null}
+
+      <div className="absolute inset-0 z-10">
+        {activeRoomZone ? (
+          <>
+            <div className="pointer-events-none absolute left-0 top-0 bg-black/42" style={{ width: stageWidth, height: activeRoomZone.y }} />
+            <div
+              className="pointer-events-none absolute left-0 bg-black/42"
+              style={{ top: activeRoomZone.y, width: activeRoomZone.x, height: activeRoomZone.height }}
+            />
+            <div
+              className="pointer-events-none absolute bg-black/42"
+              style={{
+                left: activeRoomZone.x + activeRoomZone.width,
+                top: activeRoomZone.y,
+                width: stageWidth - (activeRoomZone.x + activeRoomZone.width),
+                height: activeRoomZone.height,
+              }}
+            />
+            <div
+              className="pointer-events-none absolute left-0 bg-black/42"
+              style={{
+                top: activeRoomZone.y + activeRoomZone.height,
+                width: stageWidth,
+                height: stageHeight - (activeRoomZone.y + activeRoomZone.height),
+              }}
+            />
+            <div
+              className="pointer-events-none absolute border border-white/20 shadow-[0_0_0_9999px_rgba(0,0,0,0.08)]"
+              style={{
+                left: activeRoomZone.x,
+                top: activeRoomZone.y,
+                width: activeRoomZone.width,
+                height: activeRoomZone.height,
+              }}
+            />
+          </>
+        ) : null}
+
+        {state.rooms.map((room) => {
+          return (
+            <div
+              key={room.id}
+              className={`absolute border-4 border-dashed bg-white/6 text-left text-white/95 ${isMapEditing ? "pointer-events-auto border-amber-300 shadow-[0_0_0_3px_rgba(252,211,77,0.32)]" : "pointer-events-none border-cyan-200/90 shadow-[0_0_0_2px_rgba(165,243,252,0.16)]"}`}
+              style={{ left: room.x, top: room.y, width: room.width, height: room.height }}
+              data-hoverable={!isLens && isMapEditing ? "true" : undefined}
+            >
+              <button
+                type="button"
+                className="ml-5 mt-4 inline-flex rounded-full bg-amber-200/85 px-4 py-2 text-xl font-semibold text-stone-900"
+                onPointerDown={!isLens && isMapEditing ? (event) => beginRoomResize(event, room.id, "move") : undefined}
+                onClick={(event) => event.stopPropagation()}
+                data-hoverable={!isLens ? "true" : undefined}
+              >
+                {room.name}
+              </button>
+              {!isLens && isMapEditing ? (
+                <>
+                  <ResizeHandle position="nw" onPointerDown={(event) => beginRoomResize(event, room.id, "nw")} />
+                  <ResizeHandle position="ne" onPointerDown={(event) => beginRoomResize(event, room.id, "ne")} />
+                  <ResizeHandle position="sw" onPointerDown={(event) => beginRoomResize(event, room.id, "sw")} />
+                  <ResizeHandle position="se" onPointerDown={(event) => beginRoomResize(event, room.id, "se")} />
+                </>
+              ) : null}
+            </div>
+          );
+        })}
+
+        {renderPlayers.map((player) => (
+          <div key={player.id} className="absolute z-30 -translate-x-1/2 -translate-y-1/2" style={{ left: player.x, top: player.y }}>
+            <div className="relative h-24 w-20" style={{ transform: `translateY(${getJumpOffset(player, now)}px)` }}>
+              {visibleSpeechByPlayer[player.id] ? (
+                <div className="absolute left-1/2 top-[-70px] z-30 min-w-[120px] max-w-[220px] -translate-x-1/2 rounded-[16px] bg-[#fff8ec] px-3 py-2 text-center text-[11px] leading-[1.45] text-stone-800 shadow-[0_12px_24px_rgba(0,0,0,0.18)] whitespace-pre-wrap break-words">
+                  <div className="absolute left-1/2 top-full h-2 w-2 -translate-x-1/2 -translate-y-1/2 rotate-45 bg-[#fff8ec]" />
+                  {visibleSpeechByPlayer[player.id]}
+                </div>
+              ) : null}
+              {player.id === activePlayer.id ? <div className="absolute left-1/2 top-8 h-11 w-11 -translate-x-1/2 rounded-full border-2 border-amber-300/65" /> : null}
+              <PlayerSprite player={player} />
+              <button
+                type="button"
+                onClick={!isLens ? () => openProfile(player.id) : undefined}
+                onPointerDown={!isLens && isMapEditing ? (event) => beginPlayerDrag(event, player.id) : undefined}
+                className="group absolute left-1/2 top-[-26px] z-20 -translate-x-1/2 transition"
+                data-hoverable={!isLens ? "true" : undefined}
+              >
+                <span
+                  className="inline-block whitespace-nowrap px-1 py-1 text-[13px] font-medium leading-none tracking-[-0.01em] text-white drop-shadow-[0_2px_10px_rgba(0,0,0,0.25)]"
+                  style={{
+                    WebkitTextStroke: "3px rgba(0,0,0,0.92)",
+                    WebkitTextFillColor: "#ffffff",
+                    color: "#ffffff",
+                    textShadow: "0 2px 10px rgba(0,0,0,0.25)",
+                  }}
+                >
+                  {player.name}{player.role === "GM" ? " • GM" : ""}
+                </span>
+              </button>
+            </div>
+          </div>
+        ))}
+
+        {tableCards.map((card) => (
+          <div key={card.id} className={`absolute z-10 ${isCardAttentionActive(card.id) ? "attention-wiggle" : ""}`} style={{ left: card.x, top: card.y }}>
+            <div className="w-[45px]">
+              <CardTile
+                card={card}
+                visible={card.isFaceUp}
+                actionLabel="카드 상세"
+                highlighted={contactCard?.id === card.id}
+                disabled={activePlayer.currentRoom !== "lobby" && !card.isFaceUp}
+                onClick={!isLens ? () => {
+                  if (card.isFaceUp || activePlayer.currentRoom === "lobby") {
+                    openCard(card.id);
+                  }
+                } : undefined}
+                draggable={!isLens && activePlayer.currentRoom === "lobby"}
+                onPointerDown={!isLens ? (event) => handleCardPointerDown(event, card.id) : undefined}
+                dragging={!isLens && dragCardId === card.id}
+                suppressClickRef={suppressClickRef}
+                board
+              />
+            </div>
+          </div>
+        ))}
+      </div>
+    </>
+  );
 
   return (
-    <div className="flex min-h-screen select-none items-center justify-center overflow-hidden bg-[radial-gradient(circle_at_top_left,rgba(214,169,92,0.18),transparent_20%),radial-gradient(circle_at_top_right,rgba(157,60,43,0.14),transparent_18%),linear-gradient(180deg,#214739_0%,#16372d_100%)] p-4 text-stone-100">
+    <div className="flex h-screen w-screen select-none items-center justify-center overflow-hidden bg-[radial-gradient(circle_at_top_left,rgba(214,169,92,0.18),transparent_20%),radial-gradient(circle_at_top_right,rgba(157,60,43,0.14),transparent_18%),linear-gradient(180deg,#214739_0%,#16372d_100%)] p-4 text-stone-100">
       <div
         className={`pointer-events-none fixed z-[120] -translate-x-1/2 -translate-y-1/2 rounded-full transition-[width,height,background-color,border-color,box-shadow,transform,opacity] duration-150 ${cursorState.visible ? "opacity-100" : "opacity-0"} ${cursorState.interactive ? "h-12 w-12 border border-amber-200/80 bg-amber-100/14 shadow-[0_0_0_6px_rgba(253,230,138,0.12)]" : "h-5 w-5 border border-white/75 bg-white/10 shadow-[0_0_0_2px_rgba(255,255,255,0.08)]"}`}
         style={{ left: cursorState.x, top: cursorState.y }}
@@ -1012,16 +1483,67 @@ function App() {
         <div className={`absolute left-1/2 top-1/2 rounded-full bg-white/85 transition-all duration-150 ${cursorState.interactive ? "h-1.5 w-1.5 -translate-x-1/2 -translate-y-1/2" : "h-1 w-1 -translate-x-1/2 -translate-y-1/2"}`} />
       </div>
 
+      {cursorState.visible && cursorTooltipText ? (
+        <div
+          className="pointer-events-none fixed z-[121] whitespace-nowrap rounded-full border border-white/10 bg-black/55 px-4 py-1.5 text-[13px] font-semibold text-white/90 shadow-[0_12px_24px_rgba(0,0,0,0.22)] backdrop-blur-sm"
+          style={{
+            left: cursorState.x,
+            top: cursorState.y,
+            transform: "translate(18px, -44px)",
+          }}
+        >
+          {cursorTooltipText}
+        </div>
+      ) : null}
+
       <div
         ref={viewportRef}
-        className="relative overflow-hidden"
+        className="relative shrink-0 overflow-hidden rounded-[18px]"
         style={{ width: stageWidth * viewportScale, height: stageHeight * viewportScale }}
       >
+      <div className={`pointer-events-none absolute bottom-5 right-5 z-[110] transition ${isMapEditing ? "opacity-35" : ""}`}>
+        <div className="pointer-events-auto flex items-center gap-3 rounded-[18px] border border-white/10 bg-black/22 px-4 py-2 text-white shadow-[0_18px_40px_rgba(0,0,0,0.18)] backdrop-blur-sm">
+          <button
+            type="button"
+            onClick={() => setState((current) => {
+              const currentlyMuted = Boolean(current.bgmMuted || current.bgmVolume <= 0);
+              if (currentlyMuted) {
+                const nextVolume = current.bgmVolume > 0 ? current.bgmVolume : 0.6;
+                return { ...current, bgmMuted: false, bgmVolume: clamp(nextVolume, 0, 1), bgmPlaying: true };
+              }
+              return { ...current, bgmMuted: true, bgmPlaying: true };
+            })}
+            className="inline-flex h-9 w-9 items-center justify-center rounded-xl border border-white/12 bg-white/5 text-white/80 transition hover:bg-white/10 hover:text-white"
+            data-hoverable="true"
+            aria-label="BGM 음소거"
+          >
+            {state.bgmMuted || state.bgmVolume <= 0 ? <VolumeX className="size-4" /> : <Volume2 className="size-4" />}
+          </button>
+          <input
+            type="range"
+            min={0}
+            max={100}
+            value={Math.round(clamp(state.bgmMuted ? 0 : state.bgmVolume, 0, 1) * 100)}
+            onChange={(event) => {
+              const value = clamp(Number(event.target.value) / 100, 0, 1);
+              setState((current) => ({ ...current, bgmPlaying: true, bgmVolume: value, bgmMuted: value <= 0 }));
+            }}
+            className="h-2 w-[150px] accent-white"
+            data-hoverable="true"
+            aria-label="BGM 볼륨"
+          />
+        </div>
+      </div>
       {dragPreview && dragCard ? (
         <div
           className="pointer-events-none fixed z-[70] -translate-x-1/2 -translate-y-1/2 rotate-[3deg] opacity-92 drop-shadow-[0_20px_30px_rgba(0,0,0,0.35)]"
           style={{ left: dragPreview.x, top: dragPreview.y }}
         >
+          {dragHint?.text ? (
+            <div className="pointer-events-none absolute left-1/2 top-0 z-10 -translate-x-1/2 -translate-y-[120%] whitespace-nowrap rounded-full border border-white/10 bg-black/55 px-3 py-1 text-[12px] font-semibold text-white/90 shadow-[0_12px_24px_rgba(0,0,0,0.25)] backdrop-blur-sm">
+              {dragHint.text}
+            </div>
+          ) : null}
           <div className={dragCard.ownerId === null ? "w-[45px]" : dragCard.ownerId === activePlayer.id ? "w-[75px]" : "w-[64px]"}>
             <CardTile
               card={dragCard}
@@ -1035,14 +1557,23 @@ function App() {
       ) : null}
 
       {hoveredHandCard && !modalCard && !dragCardId ? (
-        <div className="pointer-events-none fixed inset-0 z-[49] flex items-center justify-center p-4">
-          <div
-            className="inline-flex flex-col items-center"
-            style={{ transform: `scale(${viewportScale})`, transformOrigin: "center center" }}
-          >
+        <div className="pointer-events-none absolute inset-0 z-[49] flex items-center justify-center p-10">
+          <div className="inline-flex flex-col items-center">
             <CardTile
               card={hoveredHandCard}
               visible={Boolean(hoveredHandCard.handFaceUp)}
+              modal
+            />
+          </div>
+        </div>
+      ) : null}
+
+      {hoveredProfileCard && !hoveredHandCard && !modalCard && !dragCardId ? (
+        <div className="pointer-events-none absolute inset-0 z-[49] flex items-center justify-center p-10">
+          <div className="inline-flex flex-col items-center">
+            <CardTile
+              card={hoveredProfileCard}
+              visible={false}
               modal
             />
           </div>
@@ -1070,9 +1601,51 @@ function App() {
         </div>
       ) : null}
 
-      <div className="absolute left-0 top-0">
+      {isFieldLensZooming && viewportPointer.visible && !dragCardId && !dragPointer?.active ? (
+        <div className="pointer-events-none absolute inset-0 z-[55]">
+          <div className="absolute inset-0 bg-black/10 backdrop-blur-[2px]" />
+          <div
+            className="absolute overflow-hidden rounded-[22px] border-4 border-amber-200/95 bg-[#f7f0e4] shadow-[0_18px_36px_rgba(0,0,0,0.32)]"
+            style={{
+              left: viewportPointer.x,
+              top: viewportPointer.y,
+              width: 1080,
+              height: 540,
+              transform: "translate(-50%, -50%)",
+            }}
+          >
+            <div
+              className="absolute left-0 top-0 origin-top-left"
+              style={{
+                left: 1080 / 2 - cursorFocus.x * 5 * viewportScale,
+                top: 540 / 2 - cursorFocus.y * 5 * viewportScale,
+                transform: `scale(${5 * viewportScale})`,
+                pointerEvents: "none",
+              }}
+            >
+              <div
+                className="relative overflow-hidden"
+                style={{
+                  width: stageWidth,
+                  height: stageHeight,
+                  backgroundImage: `linear-gradient(rgba(255,255,255,0.02), rgba(255,255,255,0.02)), url(${mummySpaceTemplate})`,
+                  backgroundSize: "100% 100%",
+                  backgroundPosition: "center",
+                }}
+              >
+                {renderStageScene({ isLens: true })}
+              </div>
+            </div>
+          </div>
+        </div>
+      ) : null}
+
       <div
-        className={`relative overflow-hidden rounded-[18px] border border-white/8 shadow-[0_18px_60px_rgba(0,0,0,0.28)] ${isMapZooming ? "cursor-zoom-in" : "cursor-default"}`}
+        className="absolute left-0 top-0"
+        style={{ width: stageWidth, height: stageHeight, transform: `scale(${viewportScale})`, transformOrigin: "top left" }}
+      >
+      <div
+        className={`relative h-full w-full overflow-hidden border border-white/8 shadow-[0_18px_60px_rgba(0,0,0,0.28)] ${isFieldLensZooming ? "cursor-zoom-in" : "cursor-default"}`}
         style={{ width: stageWidth, height: stageHeight }}
       >
         <div
@@ -1092,122 +1665,7 @@ function App() {
             backgroundPosition: "center",
           }}
         >
-          <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(255,255,255,0.06),transparent_55%)]" />
-
-          <div className="absolute inset-0 z-10">
-          {activeRoomZone ? (
-            <>
-              <div className="pointer-events-none absolute left-0 top-0 bg-black/42" style={{ width: stageWidth, height: activeRoomZone.y }} />
-              <div
-                className="pointer-events-none absolute left-0 bg-black/42"
-                style={{ top: activeRoomZone.y, width: activeRoomZone.x, height: activeRoomZone.height }}
-              />
-              <div
-                className="pointer-events-none absolute bg-black/42"
-                style={{
-                  left: activeRoomZone.x + activeRoomZone.width,
-                  top: activeRoomZone.y,
-                  width: stageWidth - (activeRoomZone.x + activeRoomZone.width),
-                  height: activeRoomZone.height,
-                }}
-              />
-              <div
-                className="pointer-events-none absolute left-0 bg-black/42"
-                style={{
-                  top: activeRoomZone.y + activeRoomZone.height,
-                  width: stageWidth,
-                  height: stageHeight - (activeRoomZone.y + activeRoomZone.height),
-                }}
-              />
-              <div
-                className="pointer-events-none absolute border border-white/20 shadow-[0_0_0_9999px_rgba(0,0,0,0.08)]"
-                style={{
-                  left: activeRoomZone.x,
-                  top: activeRoomZone.y,
-                  width: activeRoomZone.width,
-                  height: activeRoomZone.height,
-                }}
-              />
-            </>
-          ) : null}
-
-          {state.rooms.map((room) => {
-            return (
-              <div
-                key={room.id}
-                className={`absolute border-4 border-dashed bg-white/6 text-left text-white/95 ${isMapEditing ? "pointer-events-auto border-amber-300 shadow-[0_0_0_3px_rgba(252,211,77,0.32)]" : "pointer-events-none border-cyan-200/90 shadow-[0_0_0_2px_rgba(165,243,252,0.16)]"}`}
-                style={{ left: room.x, top: room.y, width: room.width, height: room.height }}
-                data-hoverable={isMapEditing ? "true" : undefined}
-              >
-                <button
-                  type="button"
-                  className="ml-5 mt-4 inline-flex rounded-full bg-amber-200/85 px-4 py-2 text-xl font-semibold text-stone-900"
-                  onPointerDown={isMapEditing ? (event) => beginRoomResize(event, room.id, "move") : undefined}
-                  onClick={(event) => event.stopPropagation()}
-                  data-hoverable="true"
-                >
-                  {room.name}
-                </button>
-                {isMapEditing ? (
-                  <>
-                    <ResizeHandle position="nw" onPointerDown={(event) => beginRoomResize(event, room.id, "nw")} />
-                    <ResizeHandle position="ne" onPointerDown={(event) => beginRoomResize(event, room.id, "ne")} />
-                    <ResizeHandle position="sw" onPointerDown={(event) => beginRoomResize(event, room.id, "sw")} />
-                    <ResizeHandle position="se" onPointerDown={(event) => beginRoomResize(event, room.id, "se")} />
-                  </>
-                ) : null}
-              </div>
-            );
-          })}
-
-          {renderPlayers.map((player) => (
-            <div key={player.id} className="absolute -translate-x-1/2 -translate-y-1/2" style={{ left: player.x, top: player.y }}>
-              <div className="relative h-24 w-20" style={{ transform: `translateY(${getJumpOffset(player, now)}px)` }}>
-                {visibleSpeechByPlayer[player.id] ? (
-                  <div className="absolute left-1/2 top-[-44px] z-20 min-w-[120px] max-w-[220px] -translate-x-1/2 rounded-[16px] bg-[#fff8ec] px-3 py-2 text-center text-[11px] leading-[1.45] text-stone-800 shadow-[0_12px_24px_rgba(0,0,0,0.18)]">
-                    <div className="absolute left-1/2 top-full h-2 w-2 -translate-x-1/2 rotate-45 bg-[#fff8ec]" />
-                    {visibleSpeechByPlayer[player.id]}
-                  </div>
-                ) : null}
-                {player.id === activePlayer.id ? <div className="absolute left-1/2 top-8 h-11 w-11 -translate-x-1/2 rounded-full border-2 border-amber-300/65" /> : null}
-                <PlayerSprite player={player} />
-                <button
-                  type="button"
-                  onClick={() => openProfile(player.id)}
-                  onPointerDown={isMapEditing ? (event) => beginPlayerDrag(event, player.id) : undefined}
-                  className="group absolute left-1/2 top-16 -translate-x-1/2 rounded-full border border-transparent bg-[#e7e2d7] px-2.5 py-1 text-[12px] font-semibold whitespace-nowrap text-stone-700 shadow transition hover:border-amber-200 hover:bg-white focus:border-amber-200 focus:bg-white"
-                  data-hoverable="true"
-                >
-                  {player.name}{player.role === "GM" ? " • GM" : ""}
-                </button>
-              </div>
-            </div>
-          ))}
-
-          {tableCards.map((card) => (
-            <div key={card.id} className="absolute" style={{ left: card.x, top: card.y }}>
-              <div className="w-[45px]">
-                <CardTile
-                  card={card}
-                  visible={card.isFaceUp}
-                  actionLabel="카드 상세"
-                  highlighted={contactCard?.id === card.id}
-                  disabled={activePlayer.currentRoom !== "lobby" && !card.isFaceUp}
-                  onClick={() => {
-                    if (card.isFaceUp || activePlayer.currentRoom === "lobby") {
-                      openCard(card.id);
-                    }
-                  }}
-                  draggable={activePlayer.currentRoom === "lobby"}
-                  onPointerDown={(event) => handleCardPointerDown(event, card.id)}
-                  dragging={dragCardId === card.id}
-                  suppressClickRef={suppressClickRef}
-                  board
-                />
-              </div>
-            </div>
-          ))}
-          </div>
+          {renderStageScene({ isLens: false })}
         </div>
 
         {isMapEditing ? (
@@ -1250,61 +1708,311 @@ function App() {
           </div>
         ) : null}
 
-        <header className="absolute left-5 top-5 z-30 flex items-center gap-4 rounded-[20px] border border-stone-800/10 bg-[#f3efe7]/96 px-4 py-3 text-stone-800 shadow-[0_14px_40px_rgba(0,0,0,0.18)]">
-          <ControlField
-            label="조작 플레이어"
-            value={state.activePlayerId}
-            onChange={(event) => setState((current) => ({ ...current, activePlayerId: event.target.value, modalCardId: null, profileModalPlayerId: null, documentModalType: null, tableActionCardId: null, pendingAction: null }))}
-            options={state.players.map((player) => ({
-              value: player.id,
-              label: `${player.name}${player.role === "GM" ? " [GM]" : ""} (${player.currentRoom})`,
-            }))}
-            light
-          />
+        <div className={`absolute left-5 top-5 z-30 flex max-h-[calc(100%-180px)] w-[336px] flex-col items-stretch gap-2 overflow-y-auto pr-1 transition ${isMapEditing ? "pointer-events-none opacity-35" : ""}`}>
           <button
             type="button"
-            onClick={resetGame}
-            className="inline-flex h-12 items-center gap-2 rounded-2xl bg-[#a9442d] px-4 font-medium text-white transition hover:bg-[#943c27]"
+            onClick={() => openProfile(activePlayer.id)}
+            className="group relative flex items-start gap-3 rounded-[18px] border border-amber-200/35 bg-[linear-gradient(135deg,rgba(252,211,77,0.16),rgba(0,0,0,0.18))] p-3 text-left shadow-[0_0_0_2px_rgba(252,211,77,0.12),0_18px_40px_rgba(0,0,0,0.18)] transition hover:border-amber-200/70 hover:bg-[linear-gradient(135deg,rgba(252,211,77,0.2),rgba(0,0,0,0.22))]"
           >
-            <RefreshCcw className="size-4" />
-            초기화
+            <div className="pointer-events-none absolute left-0 top-0 h-full w-[6px] rounded-l-[18px] bg-amber-200/80" />
+            <div className="pointer-events-none absolute bottom-2 right-2 rounded-full bg-amber-200/20 px-2 py-1 text-[11px] font-semibold text-amber-100/95">
+              내 캐릭터
+            </div>
+            <div className="shrink-0 overflow-hidden rounded-[22px] border border-white/20 bg-white/8">
+                <CharacterPortrait player={activePlayer} size="large" />
+            </div>
+            <div className="min-w-0 flex-1">
+              <div className="flex items-baseline justify-between gap-3">
+                <div className="min-w-0 truncate text-[18px] font-semibold leading-tight text-stone-100">{activePlayerProfile?.characterName ?? activePlayer.name}</div>
+                {lastDecisionOutcome && activePlayer.role !== "GM" ? (
+                  <div className="shrink-0 text-[12px] font-semibold text-white/65">
+                    ({formatLastDecisionBadge(lastDecisionOutcome, activePlayer.id, state.players)})
+                  </div>
+                ) : null}
+              </div>
+              <div className="mt-0.5 text-[12px] leading-snug text-amber-100/70">{activePlayerProfile?.tagline ?? ""}</div>
+              <div className="mt-2 flex items-center gap-2 overflow-x-auto pb-0.5">
+                {activeHandCards.length ? activeHandCards.map((card) => (
+                  <div
+                    key={card.id}
+                    data-hoverable="true"
+                    onMouseEnter={() => setHoveredProfileCardId(card.id)}
+                    onMouseLeave={() => setHoveredProfileCardId((current) => (current === card.id ? null : current))}
+                  >
+                    <CardTile card={card} visible={false} compact micro />
+                  </div>
+                )) : <span className="text-[12px] text-white/40">보유 카드 없음</span>}
+              </div>
+            </div>
           </button>
-        </header>
 
-        <div className={`absolute left-1/2 top-8 z-20 flex -translate-x-1/2 items-start gap-16 transition ${isMapEditing ? "pointer-events-none opacity-35" : ""}`}>
           {otherHands.map((player) => {
             const cards = state.cards.filter((card) => card.ownerId === player.id);
+            const isTransferTarget = Boolean(dragHint?.text === "양도하기" && dragHint?.targetPlayerId === player.id);
             return (
-              <div key={player.id} className="min-w-[180px]">
-                <button type="button" onClick={() => openProfile(player.id)} className="group mb-3 flex items-start gap-3 rounded-[18px] border border-transparent p-2 text-left transition hover:border-amber-200/60">
-                  <div className="overflow-hidden rounded-2xl border border-white/20 bg-white/8">
-                    <CharacterPortrait player={player} />
+              <div
+                key={player.id}
+                role="button"
+                tabIndex={0}
+                onClick={() => openProfile(player.id)}
+                onKeyDown={(event) => {
+                  if (event.key === "Enter" || event.key === " ") {
+                    event.preventDefault();
+                    openProfile(player.id);
+                  }
+                }}
+                data-hoverable="true"
+                data-player-dropzone={player.id}
+                className={`group flex cursor-pointer items-start gap-3 rounded-[18px] border border-transparent bg-black/10 p-3 text-left transition hover:border-amber-200/60 hover:bg-black/26 ${isTransferTarget ? "border-amber-200/70 bg-black/32 shadow-[0_0_0_2px_rgba(252,211,77,0.16)]" : ""}`}
+              >
+                <div className="shrink-0 overflow-hidden rounded-2xl border border-white/20 bg-white/8">
+                  <CharacterPortrait player={player} />
+                </div>
+                <div className="min-w-0 flex-1">
+                  <div className="flex items-baseline justify-between gap-3">
+                    <div className="min-w-0 truncate text-[16px] font-semibold text-stone-100">{player.name}</div>
+                    {lastDecisionOutcome && player.role !== "GM" ? (
+                      <div className="shrink-0 text-[12px] font-semibold text-white/65">
+                        ({formatLastDecisionBadge(lastDecisionOutcome, player.id, state.players)})
+                      </div>
+                    ) : null}
                   </div>
-                  <div>
-                    <p className="text-[18px] font-semibold text-stone-100">{player.name}</p>
-                    <p className="text-[12px] text-amber-100/60">{player.role === "GM" ? "게임 마스터" : characterProfiles[player.id]?.characterName ?? "플레이어"}</p>
-                    <p className="text-[15px] text-amber-100/50">보유 카드 {cards.length}장</p>
-                    <p className="mt-1 text-[11px] text-white/45 transition group-hover:text-white/72">프로필 보기</p>
+                  <p className="mt-0.5 text-[12px] text-amber-100/60">{player.role === "GM" ? "게임 마스터" : characterProfiles[player.id]?.tagline ?? ""}</p>
+                  <div className="mt-2 flex items-center gap-2 overflow-x-auto pb-0.5">
+                    {cards.length ? cards.map((card) => (
+                      <div
+                        key={card.id}
+                        data-hoverable="true"
+                        onMouseEnter={() => setHoveredProfileCardId(card.id)}
+                        onMouseLeave={() => setHoveredProfileCardId((current) => (current === card.id ? null : current))}
+                      >
+                        <CardTile card={card} visible={false} compact micro />
+                      </div>
+                    )) : <span className="text-[12px] text-white/40">보유 카드 없음</span>}
                   </div>
-                </button>
-                <div className="flex min-h-[48px] items-start gap-2">
-                  {cards.length ? cards.map((card) => (
-                    <CardTile
-                      key={card.id}
-                      card={card}
-                      visible={false}
-                      onClick={() => openCard(card.id)}
-                      compact
-                      micro
-                    />
-                  )) : <span className="pt-1 text-[18px] text-[#b08269]/88">비어 있음</span>}
                 </div>
               </div>
             );
           })}
+
+          <div className="sticky bottom-0 z-10 -mx-0.5 mt-1 rounded-[18px] border border-white/10 bg-black/22 p-3 shadow-[0_18px_40px_rgba(0,0,0,0.18)] backdrop-blur-sm">
+            <div className="mb-2 text-center text-[12px] font-semibold text-white/70">합의 진행</div>
+            <div className="flex gap-2">
+              <MiniActionButton onClick={() => startDecisionSession("nomination")}>지목 시작</MiniActionButton>
+              <MiniActionButton onClick={() => startDecisionSession("vote")}>투표 시작</MiniActionButton>
+            </div>
+          </div>
         </div>
 
-        <div className="absolute right-8 top-24 z-30 flex items-start justify-end gap-3">
+        {visibleNotices.length && !modalCard ? (
+          <div className={`pointer-events-none absolute left-1/2 top-[110px] z-40 w-[min(980px,92vw)] -translate-x-1/2 transition ${isMapEditing ? "opacity-35" : ""}`}>
+            <div className="mx-auto flex flex-col-reverse items-center gap-1">
+              {bottomStackNotices.map((notice) => (
+                <div
+                  key={notice.id}
+                  className={`px-5 text-center font-bold tracking-[0.02em] text-yellow-200 ${notice.kind === "gm" ? "py-3 text-[22px]" : "py-2 text-[18px] text-yellow-200/95"}`}
+                  style={{
+                    fontWeight: 700,
+                    textShadow: notice.kind === "gm" ? "0 10px 24px rgba(0,0,0,0.35)" : "0 10px 22px rgba(0,0,0,0.32)",
+                  }}
+                >
+                  <span className="relative inline-block">
+                    <span
+                      className="absolute inset-0"
+                      style={{
+                        WebkitTextStroke: notice.kind === "gm" ? "2px rgba(0,0,0,0.92)" : "1.6px rgba(0,0,0,0.9)",
+                        color: "transparent",
+                      }}
+                      aria-hidden="true"
+                    >
+                      {notice.text}
+                    </span>
+                    <span className="relative">{notice.text}</span>
+                  </span>
+                </div>
+              ))}
+            </div>
+          </div>
+        ) : null}
+
+        {showTimerPanel ? (
+          <div className={`pointer-events-none fixed left-1/2 top-5 z-[65] flex -translate-x-1/2 flex-row items-stretch gap-3 transition ${isMapEditing ? "opacity-35" : ""}`}>
+            <div
+              className="pointer-events-auto flex items-center gap-3 rounded-[18px] border border-white/10 bg-black/22 px-4 py-2 text-white shadow-[0_18px_40px_rgba(0,0,0,0.18)] backdrop-blur-sm"
+              onKeyDown={isTimerEditing ? (event) => {
+                if (event.key === "Escape") {
+                  event.preventDefault();
+                  cancelTimerDraft();
+                }
+                if (event.key === "Enter") {
+                  event.preventDefault();
+                  applyTimerDraft();
+                }
+              } : undefined}
+            >
+              {isTimerEditing ? (
+                <input
+                  value={timerDraft.label}
+                  onChange={(event) => setTimerDraft((current) => ({ ...current, label: event.target.value }))}
+                  className="h-7 w-[160px] rounded-lg border border-white/12 bg-black/18 px-2 text-[12px] font-semibold text-white/85 placeholder:text-white/25"
+                  placeholder="예: 브리핑"
+                  data-hoverable="true"
+                />
+              ) : (
+                <button
+                  type="button"
+                  onClick={openTimerEditor}
+                  className="min-w-0 truncate text-left text-[12px] font-semibold text-white/70 hover:text-white/90"
+                  data-hoverable="true"
+                >
+                  {state.stopwatchLabel || "타이머"}
+                </button>
+              )}
+
+              {isTimerEditing ? (
+                <div className="flex items-center gap-1 tabular-nums text-white/95">
+                  {[
+                    { field: "h", label: "시", min: 0, max: 99 },
+                    { field: "m", label: "분", min: 0, max: 59 },
+                    { field: "s", label: "초", min: 0, max: 59 },
+                  ].map((unit, index) => (
+                    <div key={unit.field} className="flex items-center gap-1">
+                      <div
+                        className="group flex items-center rounded-xl border border-white/10 bg-white/5 px-2 py-1"
+                        onPointerDown={(event) => {
+                          event.preventDefault();
+                          event.stopPropagation();
+                          setTimerDragSession({
+                            field: unit.field,
+                            min: unit.min,
+                            max: unit.max,
+                            startY: event.clientY,
+                            startValue: Number(timerDraft[unit.field]) || 0,
+                          });
+                        }}
+                        data-hoverable="true"
+                        title="드래그로 조절"
+                      >
+                        <input
+                          type="number"
+                          min={unit.min}
+                          max={unit.max}
+                          value={timerDraft[unit.field]}
+                          onChange={(event) => setTimerDraft((current) => ({ ...current, [unit.field]: clamp(Number(event.target.value) || 0, unit.min, unit.max) }))}
+                          className="h-6 w-[44px] bg-transparent text-right text-[14px] font-semibold text-white/95 outline-none"
+                          data-hoverable="true"
+                        />
+                        <div className="ml-1 flex flex-col">
+                          <button
+                            type="button"
+                            onClick={() => setTimerDraft((current) => ({ ...current, [unit.field]: clamp((Number(current[unit.field]) || 0) + 1, unit.min, unit.max) }))}
+                            className="h-3 w-4 text-[10px] leading-none text-white/70 hover:text-white"
+                            aria-label={`${unit.label} 증가`}
+                            data-hoverable="true"
+                          >
+                            ▲
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => setTimerDraft((current) => ({ ...current, [unit.field]: clamp((Number(current[unit.field]) || 0) - 1, unit.min, unit.max) }))}
+                            className="h-3 w-4 text-[10px] leading-none text-white/70 hover:text-white"
+                            aria-label={`${unit.label} 감소`}
+                            data-hoverable="true"
+                          >
+                            ▼
+                          </button>
+                        </div>
+                      </div>
+                      {index < 2 ? <div className="px-0.5 text-[16px] font-semibold text-white/80">:</div> : null}
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <button
+                  type="button"
+                  onClick={openTimerEditor}
+                  className="shrink-0 text-[16px] font-semibold tabular-nums text-white/95 hover:text-white"
+                  data-hoverable="true"
+                >
+                  {formatDuration(effectiveTimeMs)}
+                </button>
+              )}
+
+              <button
+                type="button"
+                onClick={() => setState((current) => {
+                  if (current.stopwatchStartedAt) {
+                    return { ...current, stopwatchStartedAt: null, stopwatchElapsedMs: current.stopwatchElapsedMs + (Date.now() - current.stopwatchStartedAt) };
+                  }
+                  if (current.timerDurationSec <= 0) return current;
+                  return { ...current, stopwatchStartedAt: Date.now() };
+                })}
+                className="pointer-events-auto inline-flex h-8 w-8 items-center justify-center rounded-xl border border-white/10 bg-white/5 text-[12px] font-semibold text-white/75 transition hover:bg-white/10 hover:text-white"
+                data-hoverable="true"
+                aria-label={hasRunningTimer ? "타이머 정지" : "타이머 시작"}
+              >
+                {hasRunningTimer ? "II" : "▶"}
+              </button>
+
+              {isTimerEditing ? (
+                <div className="flex items-center gap-1">
+                  <button
+                    type="button"
+                    onClick={applyTimerDraft}
+                    className="inline-flex h-8 items-center justify-center rounded-xl border border-white/10 bg-white/8 px-3 text-[12px] font-semibold text-white/85 transition hover:bg-white/12"
+                    data-hoverable="true"
+                  >
+                    확인
+                  </button>
+                  <button
+                    type="button"
+                    onClick={cancelTimerDraft}
+                    className="inline-flex h-8 items-center justify-center rounded-xl border border-white/10 bg-white/5 px-3 text-[12px] font-semibold text-white/60 transition hover:bg-white/10 hover:text-white/80"
+                    data-hoverable="true"
+                  >
+                    취소
+                  </button>
+                </div>
+              ) : null}
+            </div>
+          </div>
+        ) : null}
+
+        <div className="absolute right-8 top-24 z-[80] flex items-start justify-end gap-3">
+          <div className={`pointer-events-auto absolute right-0 top-[-76px] w-[282px] rounded-[24px] border border-white/10 bg-black/22 p-4 text-white shadow-[0_18px_40px_rgba(0,0,0,0.2)] backdrop-blur-sm transition ${isMapEditing ? "opacity-35" : ""}`}>
+            <div className="mb-3 flex items-center justify-between">
+              <div>
+                <p className="text-sm font-semibold">세션</p>
+                <p className="text-xs text-white/55">조작 플레이어 / 초기화</p>
+              </div>
+              <Users className="size-4 text-white/70" />
+            </div>
+            <div className="flex items-center gap-2">
+              <select
+                value={state.activePlayerId}
+                onChange={(event) => setState((current) => ({ ...current, activePlayerId: event.target.value, modalCardId: null, profileModalPlayerId: null, documentModalType: null, tableActionCardId: null, pendingAction: null }))}
+                className="h-10 flex-1 rounded-xl border border-white/12 bg-black/18 px-3 text-sm outline-none"
+                data-hoverable="true"
+                aria-label="조작 플레이어"
+              >
+                {state.players.map((player) => (
+                  <option key={player.id} value={player.id}>
+                    {player.name}{player.role === "GM" ? " [GM]" : ""} ({player.currentRoom})
+                  </option>
+                ))}
+              </select>
+              <button
+                type="button"
+                onClick={resetGame}
+                className="inline-flex h-10 shrink-0 items-center justify-center gap-2 rounded-xl border border-white/12 bg-white/6 px-3 text-sm font-semibold text-white/85 transition hover:bg-white/10 hover:text-white"
+                data-hoverable="true"
+                aria-label="초기화"
+              >
+                <RefreshCcw className="size-4" />
+              </button>
+            </div>
+          </div>
+
           {activePlayer.role === "GM" ? (
             <button
               type="button"
@@ -1316,202 +2024,334 @@ function App() {
             </button>
           ) : null}
 
-          <button
-            type="button"
-            onClick={() => setRightPanelOpen((current) => !current)}
-            className={`inline-flex h-14 w-14 items-center justify-center rounded-[18px] border text-white shadow-[0_18px_40px_rgba(0,0,0,0.2)] backdrop-blur-sm transition ${rightPanelOpen ? "border-amber-200/50 bg-[#8f452f]/92" : "border-white/10 bg-black/28 hover:bg-black/40"}`}
-            data-hoverable="true"
-            aria-label={rightPanelOpen ? "메뉴 닫기" : "메뉴 열기"}
-          >
-            <Menu className="size-5" />
-          </button>
-
-          <aside className={`overflow-hidden rounded-[24px] border text-white shadow-[0_18px_40px_rgba(0,0,0,0.2)] backdrop-blur-sm transition-all duration-200 ${rightPanelOpen ? "w-[282px] border-white/10 bg-black/22 p-4 opacity-100" : "pointer-events-none w-0 border-transparent bg-transparent p-0 opacity-0"}`}>
-          <button type="button" onClick={() => openDocument("shared-rulebook")} className="flex items-center justify-between rounded-2xl bg-white/10 px-4 py-3 text-left transition hover:bg-white/16">
-            <span>
-              <span className="block text-sm font-semibold">공용 룰북</span>
-              <span className="block text-xs text-white/55">전체 열람 가능</span>
-            </span>
-            <BookOpen className="size-4" />
-          </button>
-          <button
-            type="button"
-            onClick={() => {
-              if (activePlayer.role === "GM") openDocument("gm-rulebook");
-            }}
-            className={`flex items-center justify-between rounded-2xl px-4 py-3 text-left transition ${activePlayer.role === "GM" ? "bg-[#8f452f] hover:bg-[#7c3d2a]" : "cursor-not-allowed bg-white/6 text-white/35"}`}
-          >
-            <span>
-              <span className="block text-sm font-semibold">GM용 룰북</span>
-              <span className="block text-xs">{activePlayer.role === "GM" ? "GM만 열람 가능" : "현재 플레이어는 열람 불가"}</span>
-            </span>
-            <Shield className="size-4" />
-          </button>
-          <div className="rounded-2xl bg-white/8 p-4">
-            <div className="mb-3 flex items-center justify-between">
-              <div>
-                <p className="text-sm font-semibold">{state.timeMode === "timer" ? "타이머" : "스톱워치"}</p>
-                <p className="text-xs text-white/55">기본은 스톱워치, 필요하면 타이머 전환</p>
-              </div>
-              <Clock3 className="size-4 text-white/70" />
-            </div>
-            <div className="mb-3 flex gap-2">
-              <MiniActionButton onClick={() => setState((current) => ({ ...current, timeMode: "stopwatch" }))}>스톱워치</MiniActionButton>
-              <MiniActionButton onClick={() => setState((current) => ({ ...current, timeMode: "timer" }))}>타이머</MiniActionButton>
-            </div>
-            <input
-              value={state.stopwatchLabel}
-              onChange={(event) => setState((current) => ({ ...current, stopwatchLabel: event.target.value }))}
-              placeholder="예: 브리핑 10분"
-              className="mb-3 h-10 w-full rounded-xl border border-white/12 bg-black/18 px-3 text-sm outline-none placeholder:text-white/28"
-            />
-            {state.timeMode === "timer" ? (
-              <input
-                type="number"
-                min="1"
-                value={Math.max(1, Math.round(state.timerDurationSec / 60))}
-                onChange={(event) => setState((current) => ({ ...current, timerDurationSec: Number(event.target.value) * 60 }))}
-                className="mb-3 h-10 w-full rounded-xl border border-white/12 bg-black/18 px-3 text-sm outline-none"
-              />
-            ) : null}
-            <div className="mb-3 text-xs text-white/55">{state.stopwatchLabel || "무제"}</div>
-            <div className="mb-3 text-[22px] font-semibold tabular-nums">{formatDuration(effectiveTimeMs)}</div>
-            <div className="flex gap-2">
-              <MiniActionButton
-                onClick={() => setState((current) => current.stopwatchStartedAt
-                  ? { ...current, stopwatchStartedAt: null, stopwatchElapsedMs: current.stopwatchElapsedMs + (Date.now() - current.stopwatchStartedAt) }
-                  : { ...current, stopwatchStartedAt: Date.now() })}
-              >
-                {state.stopwatchStartedAt ? "정지" : "시작"}
-              </MiniActionButton>
-              <MiniActionButton onClick={() => setState((current) => ({ ...current, stopwatchStartedAt: null, stopwatchElapsedMs: 0 }))}>리셋</MiniActionButton>
-            </div>
-          </div>
-          <div className="rounded-2xl bg-white/8 p-4">
-            <div className="mb-3 flex items-center justify-between">
-              <div>
-                <p className="text-sm font-semibold">공용 BGM</p>
-                <p className="text-xs text-white/55">기본 음악 재생/정지만 지원</p>
-              </div>
-              <BookOpen className="size-4 text-white/70" />
-            </div>
-            <div className="flex gap-2">
-              <MiniActionButton onClick={() => setState((current) => ({ ...current, bgmPlaying: true }))}>재생</MiniActionButton>
-              <MiniActionButton onClick={() => setState((current) => ({ ...current, bgmPlaying: false }))}>정지</MiniActionButton>
-            </div>
-            <div className="mt-3 rounded-xl border border-white/10 bg-black/16 px-3 py-2 text-xs text-white/55">내장된 기본 mp3/wav 음원이 무한 반복 재생됩니다.</div>
-          </div>
-          <div className="rounded-2xl bg-white/8 p-4">
-            <div className="mb-3">
-              <p className="text-sm font-semibold">합의 진행</p>
-              <p className="text-xs text-white/55">GM 제외, 전원 완료 후 결과 공개</p>
-            </div>
-            <div className="flex gap-2">
-              <MiniActionButton onClick={() => startDecisionSession("nomination")}>지목 시작</MiniActionButton>
-              <MiniActionButton onClick={() => startDecisionSession("vote")}>투표 시작</MiniActionButton>
-            </div>
-            {activeDecision ? (
-              <div className="mt-3 rounded-xl border border-white/10 bg-black/16 px-3 py-2 text-xs text-white/70">
-                <div>{activeDecision.type === "nomination" ? "지목" : "투표"} 진행 중</div>
-                <div>{Object.keys(activeDecision.responses ?? {}).length} / {nonGmPlayers.length} 완료</div>
-                {activePlayer.role === "GM" ? <div className="mt-1 text-white/45">GM은 진행만 하고 팝업 제출에는 참여하지 않습니다.</div> : null}
-              </div>
-            ) : null}
-          </div>
-          {activePlayer.role === "GM" ? (
-            <div className="rounded-2xl bg-white/8 p-4">
-              <p className="mb-3 text-sm font-semibold">GM 맵 편집</p>
-              <div className="rounded-xl border border-white/10 bg-black/16 px-3 py-2 text-xs text-white/72">
-                상단 우측 `맵 편집 / 편집 종료` 버튼으로 편집 모드를 전환합니다.
-              </div>
-              <div className="mt-3 rounded-xl border border-white/10 bg-black/16 px-3 py-3 text-xs leading-6 text-white/72">
-                <div>{isMapEditing ? "편집 모드가 켜져 있습니다." : "편집 모드를 켜면 맵 요소를 직접 드래그할 수 있습니다."}</div>
-                <div>맵 우하단 핸들을 드래그하면 전체 맵 크기가 바뀝니다.</div>
-                <div>선택한 방의 이름표를 드래그하면 이동, 모서리를 드래그하면 크기 조절이 됩니다.</div>
-                <div>파란 박스 가장자리 핸들을 드래그하면 이동 가능 구역이 바뀝니다.</div>
-                <div>플레이어 이름표를 드래그하면 해당 캐릭터 위치를 직접 옮길 수 있습니다.</div>
-                <div className="mt-2 text-white/45">현재 맵 {state.mapSize.width} × {state.mapSize.height}</div>
-                {selectedRoom ? <div className="text-white/45">{selectedRoom.name} {selectedRoom.width} × {selectedRoom.height}</div> : null}
-                <div className="text-white/45">이동 구역 {state.movementBounds.left}, {state.movementBounds.top} → {state.movementBounds.right}, {state.movementBounds.bottom}</div>
-              </div>
-            </div>
-          ) : null}
-          </aside>
+          {/* 메뉴 버튼(임시 제거) */}
         </div>
 
-        <aside className={`fixed bottom-[268px] left-8 z-[60] w-[360px] rounded-[24px] border p-5 text-white transition ${isChatFocused ? "border-emerald-200/55 bg-black/45 shadow-[0_0_0_2px_rgba(167,243,208,0.2),0_18px_40px_rgba(0,0,0,0.28)] backdrop-blur-sm" : "border-transparent bg-transparent"}`}>
-          <div className="mb-5 flex items-start justify-between gap-4">
-            <div>
-              <p className="text-xs uppercase tracking-[0.28em] text-white/70">Spatial Chat</p>
-              <h2 className="mt-1 text-[22px] font-semibold leading-tight">현재 방 대화</h2>
+        <aside
+          className={`pointer-events-none absolute bottom-[160px] left-[460px] right-[460px] z-[60] rounded-[24px] border p-5 text-white transition ${isChatFocused ? "border-emerald-200/55 bg-black/22 shadow-[0_0_0_2px_rgba(167,243,208,0.16),0_18px_40px_rgba(0,0,0,0.22)]" : "border-transparent bg-transparent"}`}
+          style={{ opacity: chatOpacity, transition: "opacity 520ms ease" }}
+        >
+          <div className="flex h-[min(58vh,640px)] min-h-[420px] flex-col">
+            <div className="mb-5 text-[22px] font-semibold leading-tight text-white/88">{getRoomName(state.rooms, activePlayer.currentRoom)}</div>
+            <div
+              ref={chatScrollRef}
+              className={`mb-6 min-h-[140px] flex-1 overflow-y-auto pr-2 ${isChatFocused ? "pointer-events-auto" : "pointer-events-none"}`}
+            >
+              <div className="flex min-h-full flex-col justify-end gap-3">
+                {visibleMessages.length ? visibleMessages.map((message) => {
+                  const sender = state.players.find((player) => player.id === message.senderId);
+                  return (
+                    <article key={message.id} className="px-3 py-2.5">
+                      <div className="flex items-center justify-between gap-3">
+                        <strong className="text-sm">{sender?.name ?? "알 수 없음"}</strong>
+                        <span className="text-xs text-white/45">{formatTime(message.timestamp)}</span>
+                      </div>
+                      <p className="mt-1 text-sm text-white/80">{message.text}</p>
+                    </article>
+                  );
+                }) : null}
+              </div>
             </div>
-            <div className="pt-1 text-sm text-white/75">{getRoomName(state.rooms, activePlayer.currentRoom)}</div>
+            <form onSubmit={submitChat} className="pointer-events-auto flex gap-3">
+              <input
+                ref={chatInputRef}
+                value={chatDraft}
+                onChange={(event) => setChatDraft(event.target.value)}
+                onFocus={() => {
+                  if (!allowChatFocusRef.current) {
+                    chatInputRef.current?.blur();
+                    return;
+                  }
+                  allowChatFocusRef.current = false;
+                  setIsChatFocused(true);
+                  setLastChatActivityAt(Date.now());
+                }}
+                onBlur={() => {
+                  setIsChatFocused(false);
+                  setLastChatActivityAt(Date.now());
+                }}
+                onMouseDown={(event) => {
+                  if (!isChatFocused) {
+                    event.preventDefault();
+                    event.stopPropagation();
+                  }
+                }}
+                maxLength={180}
+                placeholder="Enter로 입력 활성화, Enter로 전송"
+                className="h-12 flex-1 rounded-2xl border border-white/15 bg-black/15 px-4 text-sm text-white outline-none placeholder:text-white/35 focus:border-emerald-200/50"
+              />
+              <button type="submit" className="inline-flex h-12 items-center gap-2 rounded-2xl bg-[#8f452f] px-4 font-medium text-white transition hover:bg-[#7c3d2a]">
+                전송
+              </button>
+            </form>
           </div>
-          <p className="mb-5 text-sm leading-6 text-white/76">{getRoomName(state.rooms, activePlayer.currentRoom)}에 들어온 이후의 대화만 보입니다.</p>
-          <div ref={chatScrollRef} className="mb-6 h-[220px] space-y-3 overflow-y-auto pr-2">
-            {visibleMessages.length ? visibleMessages.map((message) => {
-              const sender = state.players.find((player) => player.id === message.senderId);
-              return (
-                <article key={message.id} className="px-3 py-2.5">
-                  <div className="flex items-center justify-between gap-3">
-                    <strong className="text-sm">{sender?.name ?? "알 수 없음"}</strong>
-                    <span className="text-xs text-white/45">{formatTime(message.timestamp)}</span>
-                  </div>
-                  <p className="mt-1 text-sm text-white/80">{message.text}</p>
-                </article>
-              );
-            }) : <p className="text-[17px] text-white/88">이 방에는 아직 공개된 대화가 없습니다.</p>}
-          </div>
-          <form onSubmit={submitChat} className="flex gap-3">
-            <input
-              ref={chatInputRef}
-              value={chatDraft}
-              onChange={(event) => setChatDraft(event.target.value)}
-              onFocus={() => setIsChatFocused(true)}
-              onBlur={() => setIsChatFocused(false)}
-              maxLength={180}
-              placeholder="Enter로 입력 활성화, Enter로 전송"
-              className="h-12 flex-1 rounded-2xl border border-white/15 bg-black/15 px-4 text-sm text-white outline-none placeholder:text-white/35 focus:border-emerald-200/50"
-            />
-            <button type="submit" className="inline-flex h-12 items-center gap-2 rounded-2xl bg-[#8f452f] px-4 font-medium text-white transition hover:bg-[#7c3d2a]">
-              전송
-            </button>
-          </form>
         </aside>
 
-        <div className={`absolute bottom-5 left-1/2 z-30 w-[1560px] -translate-x-1/2 px-5 py-3 text-stone-900 transition ${isMapEditing ? "pointer-events-none opacity-35" : ""}`}>
-          <button type="button" onClick={() => openProfile(activePlayer.id)} className="group mb-3 flex items-start gap-4 rounded-[20px] border border-transparent p-2 text-left transition hover:border-stone-300">
-            <div className="overflow-hidden rounded-2xl border border-stone-300/70 bg-white">
-              <CharacterPortrait player={activePlayer} size="large" />
+        {modalCard ? (
+          <div
+            className="absolute inset-0 z-50 flex items-center justify-center bg-slate-950/42 p-4 backdrop-blur-[2px]"
+            onClick={() => setState((current) => ({ ...current, modalCardId: null, tableActionCardId: null, pendingAction: null }))}
+          >
+            <div
+              className="inline-flex max-h-full max-w-full flex-col items-center justify-center"
+            >
+              <div
+                style={{ transform: `scale(${modalCardScale})`, transformOrigin: "center center" }}
+                onClick={(event) => event.stopPropagation()}
+              >
+                <CardModalPreview
+                  card={modalCard}
+                  visible={canSeeModalCard}
+                  isZooming={isAltZooming}
+                  zoomFocus={modalZoomFocus}
+                  flipHintText={
+                    modalCard.ownerId === null && activePlayer.currentRoom === "lobby"
+                      ? "뒤집기"
+                      : modalCard.ownerId === activePlayer.id
+                        ? (modalCard.handFaceUp ? "뒷면 보기" : "앞면 보기")
+                        : ""
+                  }
+                  scopeHintText={
+                    modalCard.ownerId === null
+                      ? "*필드에 있는 카드를 뒤집으면 모두에게 공개됩니다"
+                      : modalCard.ownerId === activePlayer.id
+                        ? "*내 손에 있는 카드의 내용은 나에게만 보입니다"
+                        : ""
+                  }
+                  onFlip={
+                    modalCard.ownerId === null && activePlayer.currentRoom === "lobby"
+                      ? toggleTableCard
+                      : modalCard.ownerId === activePlayer.id
+                        ? toggleHandCardFace
+                        : null
+                  }
+                  onTooltipChange={setCursorTooltipText}
+                  onPointerMove={(event) => {
+                    const bounds = event.currentTarget.getBoundingClientRect();
+                    setModalZoomFocus({
+                      x: event.clientX - bounds.left,
+                      y: event.clientY - bounds.top,
+                      width: bounds.width,
+                      height: bounds.height,
+                    });
+                  }}
+                  onPointerLeave={() => setModalZoomFocus(null)}
+                />
+              </div>
+
+              <div className="mt-6 flex flex-wrap items-center justify-center gap-3" onClick={(event) => event.stopPropagation()}>
+                {modalCard.ownerId === null && activePlayer.currentRoom === "lobby" ? (
+                  <>
+                    <ActionButton onClick={takeCard}>내 손에 가져오기</ActionButton>
+                  </>
+                ) : null}
+
+                {modalCard.ownerId === activePlayer.id ? (
+                  <>
+                    <ActionButton onClick={(event) => openActionPopover("place", event)}>필드에 내려놓기</ActionButton>
+                    <ActionButton onClick={(event) => openActionPopover("transfer", event)}>양도하기</ActionButton>
+                  </>
+                ) : null}
+
+                {modalCard.ownerId !== null && modalCard.ownerId !== activePlayer.id && activePlayer.role === "GM" ? (
+                  <ActionButton onClick={() => setGmPeekFaceUp((current) => !current)}>
+                    {gmPeekFaceUp ? "뒷면 보기" : "앞면 보기"}
+                  </ActionButton>
+                ) : null}
+              </div>
+
+              {modalCard.ownerId === activePlayer.id && state.pendingAction === "place" && actionPopover?.type === "place" ? (
+                <div
+                  className="fixed inset-0 z-[80]"
+                  onClick={(event) => {
+                    event.preventDefault();
+                    event.stopPropagation();
+                    setState((current) => ({ ...current, pendingAction: null }));
+                    setActionPopover(null);
+                  }}
+                >
+                  <div
+                    className="fixed rounded-[22px] border border-white/10 bg-black/22 p-4 shadow-[0_18px_40px_rgba(0,0,0,0.22)] backdrop-blur-sm"
+                    style={{
+                      left: clamp(actionPopover.x - 220, 16, window.innerWidth - 16 - 440),
+                      top: clamp(actionPopover.y + 10, 16, window.innerHeight - 16 - 220),
+                      width: 440,
+                    }}
+                    onClick={(event) => event.stopPropagation()}
+                  >
+                    <div className="mb-3 text-center text-sm font-semibold text-white/80">어떤 상태로 내려놓을까요?</div>
+                    <div className="grid grid-cols-2 gap-3">
+                      <button
+                        type="button"
+                        onClick={() => placeCardOnTable(true)}
+                        className="group flex items-center gap-3 rounded-[18px] border border-white/10 bg-white/5 p-3 text-left transition hover:border-amber-200/55 hover:bg-white/8"
+                        data-hoverable="true"
+                      >
+                        <div className="w-[88px] shrink-0">
+                          <CardTile card={modalCard} visible compact />
+                        </div>
+                        <div className="min-w-0">
+                          <div className="text-sm font-semibold text-white/90">펼친 채로</div>
+                          <div className="mt-0.5 text-xs text-white/55">전체공개 상태로 내려놓습니다.</div>
+                        </div>
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => placeCardOnTable(false)}
+                        className="group flex items-center gap-3 rounded-[18px] border border-white/10 bg-white/5 p-3 text-left transition hover:border-amber-200/55 hover:bg-white/8"
+                        data-hoverable="true"
+                      >
+                        <div className="w-[88px] shrink-0">
+                          <CardTile card={modalCard} visible={false} compact />
+                        </div>
+                        <div className="min-w-0">
+                          <div className="text-sm font-semibold text-white/90">덮은 채로</div>
+                          <div className="mt-0.5 text-xs text-white/55">비공개 상태로 내려놓습니다.</div>
+                        </div>
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              ) : null}
+
+              {modalCard.ownerId === activePlayer.id && state.pendingAction === "transfer" && actionPopover?.type === "transfer" ? (
+                <div
+                  className="fixed inset-0 z-[80]"
+                  onClick={(event) => {
+                    event.preventDefault();
+                    event.stopPropagation();
+                    setState((current) => ({ ...current, pendingAction: null }));
+                    setActionPopover(null);
+                  }}
+                >
+                  <div
+                    className="fixed rounded-[22px] border border-white/10 bg-black/22 p-4 shadow-[0_18px_40px_rgba(0,0,0,0.22)] backdrop-blur-sm"
+                    style={{
+                      left: clamp(actionPopover.x - 250, 16, window.innerWidth - 16 - 500),
+                      top: clamp(actionPopover.y + 10, 16, window.innerHeight - 16 - 340),
+                      width: 500,
+                      maxHeight: 360,
+                      overflow: "auto",
+                    }}
+                    onClick={(event) => event.stopPropagation()}
+                  >
+                    <div className="mb-3 text-center text-sm font-semibold text-white/80">누구에게 양도할까요?</div>
+                    <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+                      {state.players
+                        .filter((player) => player.id !== activePlayer.id && player.role !== "GM")
+                        .map((player) => (
+                          <button
+                            key={player.id}
+                            type="button"
+                            onClick={() => transferCard(player.id)}
+                            className="group flex items-center gap-3 rounded-[18px] border border-white/10 bg-white/5 p-3 text-left transition hover:border-amber-200/55 hover:bg-white/8"
+                            data-hoverable="true"
+                          >
+                            <div className="shrink-0 overflow-hidden rounded-2xl border border-white/15 bg-white/5">
+                              <CharacterPortrait player={player} />
+                            </div>
+                            <div className="min-w-0">
+                              <div className="truncate text-sm font-semibold text-white/90">{characterProfiles[player.id]?.characterName ?? player.name}</div>
+                              <div className="mt-0.5 line-clamp-2 text-[11px] leading-snug text-white/55">
+                                {player.role === "GM" ? "게임 마스터" : characterProfiles[player.id]?.tagline ?? ""}
+                              </div>
+                            </div>
+                          </button>
+                        ))}
+                    </div>
+                  </div>
+                </div>
+              ) : null}
             </div>
-            <div>
-              <div className="text-[18px] font-semibold">{activePlayer.name}</div>
-              <div className="text-[13px] text-stone-600">{activePlayerProfile?.characterName ?? "캐릭터 프로필"}</div>
-              <div className="text-[16px] text-stone-600">단서 {activeHandCards.length}장</div>
-              <div className="mt-1 text-[11px] text-stone-500 transition group-hover:text-stone-700">프로필 보기</div>
-            </div>
-          </button>
+          </div>
+        ) : null}
+
+        <div className={`absolute bottom-5 left-[480px] right-5 z-30 px-5 py-3 text-stone-900 transition ${isMapEditing ? "pointer-events-none opacity-35" : ""}`}>
           <div
             ref={handTrayRef}
             className="flex min-h-[112px] gap-2 overflow-x-auto pb-1"
             data-hand-dropzone="true"
           >
+            <div
+              role="button"
+              tabIndex={0}
+              onClick={openStorybook}
+              onKeyDown={(event) => {
+                if (event.key === "Enter" || event.key === " ") {
+                  event.preventDefault();
+                  openStorybook();
+                }
+              }}
+              data-hoverable="true"
+              className="group relative aspect-[3/4] w-[75px] shrink-0 overflow-hidden rounded-[18px] border border-amber-200/30 bg-[linear-gradient(135deg,#2c3d6b,#1f2b55)] text-white shadow-lg transition hover:-translate-y-0.5 hover:border-amber-200/70 hover:shadow-[0_0_0_2px_rgba(252,211,77,0.22)]"
+            >
+              <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top,rgba(255,255,255,0.16),transparent_34%)]" />
+              <div className="absolute inset-0 flex flex-col items-center justify-center px-3 text-center">
+                <div className="text-[10px] font-semibold uppercase tracking-[0.22em] text-white/70">Storybook</div>
+                <div className="mt-2 text-[18px] font-extrabold leading-none">스토리북</div>
+              </div>
+            </div>
+
+            <div
+              role="button"
+              tabIndex={0}
+              onClick={openSharedRulebook}
+              onKeyDown={(event) => {
+                if (event.key === "Enter" || event.key === " ") {
+                  event.preventDefault();
+                  openSharedRulebook();
+                }
+              }}
+              data-hoverable="true"
+              className="group relative aspect-[3/4] w-[75px] shrink-0 overflow-hidden rounded-[18px] border border-white/12 bg-[linear-gradient(135deg,#35686d,#1d3e44)] text-white shadow-lg transition hover:-translate-y-0.5 hover:border-amber-200/70 hover:shadow-[0_0_0_2px_rgba(252,211,77,0.22)]"
+            >
+              <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top,rgba(255,255,255,0.16),transparent_34%)]" />
+              <div className="absolute inset-0 flex flex-col items-center justify-center px-3 text-center">
+                <div className="text-[10px] font-semibold uppercase tracking-[0.22em] text-white/70">Rulebook</div>
+                <div className="mt-2 text-[16px] font-extrabold leading-none">공용 룰북</div>
+              </div>
+            </div>
+
+            {activePlayer.role === "GM" ? (
+              <div
+                role="button"
+                tabIndex={0}
+                onClick={openGmRulebook}
+                onKeyDown={(event) => {
+                  if (event.key === "Enter" || event.key === " ") {
+                    event.preventDefault();
+                    openGmRulebook();
+                  }
+                }}
+                data-hoverable="true"
+                className="group relative aspect-[3/4] w-[75px] shrink-0 overflow-hidden rounded-[18px] border border-white/12 bg-[linear-gradient(135deg,#6b3b2c,#3b1f18)] text-white shadow-lg transition hover:-translate-y-0.5 hover:border-amber-200/70 hover:shadow-[0_0_0_2px_rgba(252,211,77,0.22)]"
+              >
+                <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top,rgba(255,255,255,0.14),transparent_34%)]" />
+                <div className="absolute inset-0 flex flex-col items-center justify-center px-3 text-center">
+                  <div className="text-[10px] font-semibold uppercase tracking-[0.22em] text-white/70">Rulebook</div>
+                  <div className="mt-2 text-[16px] font-extrabold leading-none">GM 룰북</div>
+                </div>
+              </div>
+            ) : null}
+
             {activeHandCards.length ? activeHandCards.map((card) => (
-              <CardTile
-                key={card.id}
-                card={card}
-                visible={Boolean(card.handFaceUp)}
-                onClick={() => openCard(card.id)}
-                onMouseEnter={() => setHoveredHandCardId(card.id)}
-                onMouseLeave={() => setHoveredHandCardId((current) => (current === card.id ? null : current))}
-                actionLabel="카드 상세"
-                compact
-                hand
-                draggable={activePlayer.currentRoom === "lobby"}
-                onPointerDown={(event) => handleCardPointerDown(event, card.id)}
-                dragging={dragCardId === card.id}
-                suppressClickRef={suppressClickRef}
-              />
+              <div key={card.id} className={isCardAttentionActive(card.id) ? "attention-wiggle" : ""}>
+                <CardTile
+                  card={card}
+                  visible={Boolean(card.handFaceUp)}
+                  onClick={() => openHandCard(card.id)}
+                  onMouseEnter={() => setHoveredHandCardId(card.id)}
+                  onMouseLeave={() => setHoveredHandCardId((current) => (current === card.id ? null : current))}
+                  actionLabel="카드 상세"
+                  compact
+                  hand
+                  draggable={activePlayer.currentRoom === "lobby"}
+                  onPointerDown={(event) => handleCardPointerDown(event, card.id)}
+                  dragging={dragCardId === card.id}
+                  suppressClickRef={suppressClickRef}
+                />
+              </div>
             )) : <EmptyState label="손패가 비어 있습니다. 로비에서 단서를 가져와 보세요." light />}
           </div>
         </div>
@@ -1521,127 +2361,85 @@ function App() {
 
       <audio ref={bgmAudioRef} src={defaultBgm} preload="auto" hidden />
 
-      {modalCard ? (
-        <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/42 p-4 backdrop-blur-[2px]"
-          onClick={() => setState((current) => ({ ...current, modalCardId: null, tableActionCardId: null, pendingAction: null }))}
-        >
-          <div
-            className="inline-flex flex-col items-center"
-            style={{ transform: `scale(${viewportScale})`, transformOrigin: "center center" }}
-          >
-            <div
-              style={{ transform: `scale(${modalCardScale})`, transformOrigin: "center center" }}
-              onClick={(event) => event.stopPropagation()}
-            >
-              <CardModalPreview
-                card={modalCard}
-                visible={canSeeModalCard}
-                isZooming={isAltZooming}
-                zoomFocus={modalZoomFocus}
-                onPointerMove={(event) => {
-                  const bounds = event.currentTarget.getBoundingClientRect();
-                  setModalZoomFocus({
-                    x: event.clientX - bounds.left,
-                    y: event.clientY - bounds.top,
-                    width: bounds.width,
-                    height: bounds.height,
-                  });
-                }}
-                onPointerLeave={() => setModalZoomFocus(null)}
-              />
-            </div>
-
-            <div className="mt-6 flex flex-wrap items-center justify-center gap-3" onClick={(event) => event.stopPropagation()}>
-              {modalCard.ownerId === null && activePlayer.currentRoom === "lobby" ? (
-                <>
-                  <ActionButton onClick={toggleTableCard}>뒤집기</ActionButton>
-                  <ActionButton onClick={takeCard}>가져오기</ActionButton>
-                </>
-              ) : null}
-
-              {modalCard.ownerId === activePlayer.id ? (
-                <>
-                  <ActionButton onClick={toggleHandCardFace}>{modalCard.handFaceUp ? "뒷면 보기" : "앞면 보기"}</ActionButton>
-                  <ActionButton onClick={() => placeCardOnTable(true)}>전체공개</ActionButton>
-                  <ActionButton onClick={() => setState((current) => ({ ...current, pendingAction: current.pendingAction === "transfer" ? null : "transfer" }))}>양도하기</ActionButton>
-                </>
-              ) : null}
-
-              {modalCard.ownerId !== null && modalCard.ownerId !== activePlayer.id && activePlayer.role === "GM" ? (
-                <ActionButton onClick={() => setGmPeekFaceUp((current) => !current)}>
-                  {gmPeekFaceUp ? "뒷면 보기" : "앞면 보기"}
-                </ActionButton>
-              ) : null}
-            </div>
-
-            {modalCard.ownerId === activePlayer.id && state.pendingAction === "transfer" ? (
-              <div className="mt-4 flex flex-wrap items-center justify-center gap-3" onClick={(event) => event.stopPropagation()}>
-                <p className="w-full text-center text-sm text-white/70">누구에게 양도할지 선택하세요.</p>
-                <div className="flex flex-wrap justify-center gap-2">
-                  {state.players.filter((player) => player.id !== activePlayer.id).map((player) => (
-                    <ActionButton key={player.id} onClick={() => transferCard(player.id)}>
-                      {player.name}
-                    </ActionButton>
-                  ))}
-                </div>
-              </div>
-            ) : null}
-          </div>
-        </div>
-      ) : null}
-
       {profilePlayer ? (
         <OverlayModal onClose={() => setState((current) => ({ ...current, profileModalPlayerId: null }))}>
-          <div className="w-[min(720px,92vw)] rounded-[28px] bg-[#f7f0e4] p-6 text-stone-900 shadow-[0_24px_80px_rgba(0,0,0,0.28)]">
-            <div className="mb-5 flex items-start gap-4">
-              <div className="overflow-hidden rounded-[22px] border border-stone-900/8 bg-white">
-                <CharacterPortrait player={profilePlayer} size="profile" />
-              </div>
-              <div className="pt-1">
-                <p className="text-xs uppercase tracking-[0.24em] text-stone-500">{profilePlayer.role === "GM" ? "Game Master" : "Character Profile"}</p>
-                <h2 className="mt-1 text-3xl font-semibold">{characterProfiles[profilePlayer.id]?.characterName ?? profilePlayer.name}</h2>
-                <p className="mt-1 text-sm text-stone-600">{characterProfiles[profilePlayer.id]?.tagline ?? ""}</p>
-              </div>
-            </div>
-            <div className="rounded-[22px] border border-stone-900/8 bg-white/72 p-5">
-              <p className="text-sm leading-7 text-stone-700">{characterProfiles[profilePlayer.id]?.bio ?? "등록된 소개가 없습니다."}</p>
-            </div>
-            {profilePlayer.id === activePlayer.id ? (
-              <div className="mt-5 rounded-[22px] border border-stone-900/8 bg-white/72 p-5">
-                <p className="mb-3 text-sm font-semibold uppercase tracking-[0.22em] text-stone-500">캐릭터 스토리북</p>
-                <div className="max-h-[320px] overflow-y-auto pr-2 text-sm leading-7 text-stone-700 whitespace-pre-wrap">
-                  {characterProfiles[profilePlayer.id]?.storybook ?? "스토리북이 비어 있습니다."}
+          <ZoomLensPreview isZooming={isAltZooming}>
+            <div className="w-[min(720px,92vw)] rounded-[28px] bg-[#f7f0e4] p-6 text-stone-900 shadow-[0_24px_80px_rgba(0,0,0,0.28)]">
+              <div className="mb-5 flex items-start gap-4">
+                <div className="overflow-hidden rounded-[22px] border border-stone-900/8 bg-white">
+                  <CharacterPortrait player={profilePlayer} size="profile" />
+                </div>
+                <div className="pt-1">
+                  <h2 className="mt-1 text-3xl font-semibold">{characterProfiles[profilePlayer.id]?.characterName ?? profilePlayer.name}</h2>
+                  <p className="mt-1 text-sm text-stone-600">{characterProfiles[profilePlayer.id]?.tagline ?? ""}</p>
                 </div>
               </div>
-            ) : null}
-          </div>
+              <div className="rounded-[22px] border border-stone-900/8 bg-white/72 p-5">
+                <p className="text-sm leading-7 text-stone-700">{characterProfiles[profilePlayer.id]?.bio ?? "등록된 소개가 없습니다."}</p>
+              </div>
+            </div>
+          </ZoomLensPreview>
         </OverlayModal>
+      ) : null}
+
+      {storybookPlayer ? (
+        <FloatingModal onClose={() => setState((current) => ({ ...current, storybookModalPlayerId: null, storybookPageIndex: 0 }))}>
+          <ZoomLensPreview isZooming={isAltZooming}>
+            <StorybookModal
+              player={storybookPlayer}
+              storybook={characterProfiles[storybookPlayer.id]?.storybook ?? ""}
+              pageIndex={state.storybookPageIndex}
+              onPrev={() => setState((current) => ({ ...current, storybookPageIndex: Math.max(0, current.storybookPageIndex - 1) }))}
+              onNext={(pageCount) => setState((current) => ({ ...current, storybookPageIndex: Math.min(pageCount - 1, current.storybookPageIndex + 1) }))}
+              onClose={() => setState((current) => ({ ...current, storybookModalPlayerId: null, storybookPageIndex: 0 }))}
+            />
+          </ZoomLensPreview>
+        </FloatingModal>
       ) : null}
 
       {state.documentModalType ? (
-        <OverlayModal onClose={() => setState((current) => ({ ...current, documentModalType: null }))}>
-          <RulebookModalContent document={state.documentModalType === "gm-rulebook" ? gmRulebook : sharedRulebook} />
-        </OverlayModal>
+        <FloatingModal onClose={() => setState((current) => ({ ...current, documentModalType: null }))}>
+          <ZoomLensPreview isZooming={isAltZooming}>
+            <RulebookModalContent
+              document={state.documentModalType === "gm-rulebook" ? gmRulebook : sharedRulebook}
+              onClose={() => setState((current) => ({ ...current, documentModalType: null }))}
+            />
+          </ZoomLensPreview>
+        </FloatingModal>
       ) : null}
 
       {activeDecision && isDecisionParticipant && activeDecision.status === "collecting" && !activeDecisionResponse ? (
         <OverlayModal onClose={() => {}}>
-          <DecisionModal
-            type={activeDecision.type}
-            players={nonGmPlayers.filter((player) => player.id !== activePlayer.id)}
-            onSubmit={submitDecisionResponse}
-          />
+          <ZoomLensPreview isZooming={isAltZooming}>
+            <DecisionModal
+              type={activeDecision.type}
+              players={nonGmPlayers.filter((player) => player.id !== activePlayer.id)}
+              onSubmit={submitDecisionResponse}
+            />
+          </ZoomLensPreview>
         </OverlayModal>
       ) : null}
 
       {activeDecision && activeDecision.status === "complete" ? (
         <OverlayModal onClose={() => setState((current) => ({ ...current, decisionSession: null }))}>
-          <DecisionResultModal
-            session={activeDecision}
-            players={state.players}
-            onClose={() => setState((current) => ({ ...current, decisionSession: null }))}
-          />
+          <ZoomLensPreview isZooming={isAltZooming}>
+            <DecisionResultModal
+              session={activeDecision}
+              players={state.players}
+              onClose={() => setState((current) => ({ ...current, decisionSession: null }))}
+            />
+          </ZoomLensPreview>
+        </OverlayModal>
+      ) : null}
+
+      {lastDecisionOutcome && state.lastDecisionModalOpen ? (
+        <OverlayModal onClose={() => setState((current) => ({ ...current, lastDecisionModalOpen: false }))}>
+          <ZoomLensPreview isZooming={isAltZooming}>
+            <DecisionResultModal
+              session={{ type: lastDecisionOutcome.type, status: "complete", responses: {}, result: lastDecisionOutcome.result }}
+              players={state.players}
+              onClose={() => setState((current) => ({ ...current, lastDecisionModalOpen: false }))} />
+          </ZoomLensPreview>
         </OverlayModal>
       ) : null}
     </div>
@@ -1689,7 +2487,7 @@ function CardTile({
   const cardScaleClass = modal ? "scale-[1.8333]" : micro ? "scale-[0.105]" : hand ? "scale-[0.4148]" : board ? "scale-[0.2518]" : compact ? "scale-[0.3555]" : "scale-[0.4888]";
   const cardNumber = getCardSequence(card.id);
   const categoryCode = getCardCategoryCode(card.id);
-  const categoryLabel = `${card.type ?? "단서"} 단서 ${categoryCode}`;
+  const categoryLabel = `[${card.type ?? "문서"}]`;
   const cardTitle = card.summary ?? card.title;
   return (
     <div
@@ -1721,12 +2519,16 @@ function CardTile({
       <div className={`absolute left-0 top-0 h-[240px] w-[180px] origin-top-left ${cardScaleClass}`}>
         <div className="flex h-full w-full flex-col px-[14px] py-[14px]">
           <div className="flex items-start justify-between gap-2">
-            <div className={`px-2 py-1 text-[9px] font-semibold uppercase tracking-[0.24em] ${visible ? "bg-stone-900/7 text-stone-600" : "bg-white/12 text-white/72"}`}>
-              {categoryLabel}
-            </div>
-            <div className={`text-[9px] font-semibold uppercase tracking-[0.22em] ${visible ? "text-stone-400" : "text-white/38"}`}>
-              #{cardNumber}
-            </div>
+            {visible ? (
+              <>
+                <div className="px-2 py-1 text-[9px] font-semibold uppercase tracking-[0.24em] bg-stone-900/7 text-stone-600">
+                  {`${card.type ?? "단서"} 단서 ${categoryCode}`}
+                </div>
+                <div className="text-[9px] font-semibold uppercase tracking-[0.22em] text-stone-400">
+                  #{cardNumber}
+                </div>
+              </>
+            ) : null}
           </div>
 
           {visible ? (
@@ -1742,10 +2544,8 @@ function CardTile({
             </>
           ) : (
             <div className="mt-[18px] flex flex-1 items-center justify-center">
-              <div className="border border-white/10 bg-black/10 px-4 py-5 text-center">
-                <p className="text-[9px] font-semibold uppercase tracking-[0.24em] text-white/42">#{cardNumber}</p>
-                <p className="mt-3 text-[10px] font-semibold uppercase tracking-[0.26em] text-white/46">{categoryCode}</p>
-                <p className="mt-2 text-[20px] font-semibold leading-[1.1]">{card.type ?? "공용 단서"}</p>
+              <div className="border border-white/10 bg-black/10 px-6 py-6 text-center">
+                <p className="text-[22px] font-semibold leading-[1.1] text-white/90">{categoryLabel}</p>
               </div>
             </div>
           )}
@@ -1757,18 +2557,50 @@ function CardTile({
   );
 }
 
-function CardModalPreview({ card, visible, isZooming, zoomFocus, onPointerMove, onPointerLeave }) {
-  const lensSize = 1020;
+function CardModalPreview({ card, visible, isZooming, zoomFocus, onPointerMove, onPointerLeave, flipHintText, onFlip, onTooltipChange, scopeHintText }) {
+  const lensWidth = 1080;
+  const lensHeight = 540;
   const zoomScale = 5;
   const lensVisible = Boolean(isZooming && zoomFocus);
-  const lensLeft = zoomFocus ? zoomFocus.x : lensSize / 2;
-  const lensTop = zoomFocus ? zoomFocus.y : lensSize / 2;
+  const lensLeft = zoomFocus ? zoomFocus.x : lensWidth / 2;
+  const lensTop = zoomFocus ? zoomFocus.y : lensHeight / 2;
+  const canFlip = Boolean(flipHintText && onFlip);
 
   return (
     <div
-      className="relative inline-block"
-      onPointerMove={onPointerMove}
-      onPointerLeave={onPointerLeave}
+      className="group relative inline-block"
+      onPointerMove={(event) => {
+        onPointerMove?.(event);
+        if (canFlip) onTooltipChange?.(flipHintText);
+      }}
+      onMouseMove={(event) => {
+        onPointerMove?.(event);
+        if (canFlip) onTooltipChange?.(flipHintText);
+      }}
+      onPointerLeave={(event) => {
+        onPointerLeave?.(event);
+        onTooltipChange?.("");
+      }}
+      onMouseEnter={() => {
+        if (canFlip) onTooltipChange?.(flipHintText);
+      }}
+      onMouseLeave={() => {
+        onTooltipChange?.("");
+      }}
+      role={flipHintText && onFlip ? "button" : undefined}
+      tabIndex={flipHintText && onFlip ? 0 : undefined}
+      onClick={flipHintText && onFlip ? (event) => {
+        event.preventDefault();
+        event.stopPropagation();
+        onFlip();
+      } : undefined}
+      onKeyDown={flipHintText && onFlip ? (event) => {
+        if (event.key === "Enter" || event.key === " ") {
+          event.preventDefault();
+          event.stopPropagation();
+          onFlip();
+        }
+      } : undefined}
       data-hoverable="true"
     >
       <CardTile
@@ -1778,26 +2610,32 @@ function CardModalPreview({ card, visible, isZooming, zoomFocus, onPointerMove, 
         modal
       />
 
+      {scopeHintText ? (
+        <div className="pointer-events-none absolute left-1/2 top-full mt-3 w-[min(560px,90vw)] -translate-x-1/2 text-center text-[12px] font-medium leading-relaxed text-white/62 whitespace-pre-line opacity-0 transition group-hover:opacity-100">
+          {scopeHintText}
+        </div>
+      ) : null}
+
       {lensVisible ? (
         <div className="pointer-events-none absolute inset-0 overflow-hidden rounded-[18px] bg-black/16 backdrop-blur-[3px]" />
       ) : null}
 
       {lensVisible ? (
         <div
-          className="pointer-events-none absolute overflow-hidden rounded-full border-4 border-amber-200/95 bg-[#f7f0e4] shadow-[0_18px_36px_rgba(0,0,0,0.32)]"
+          className="pointer-events-none absolute overflow-hidden rounded-[22px] border-4 border-amber-200/95 bg-[#f7f0e4] shadow-[0_18px_36px_rgba(0,0,0,0.32)]"
           style={{
             left: lensLeft,
             top: lensTop,
-            width: lensSize,
-            height: lensSize,
+            width: lensWidth,
+            height: lensHeight,
             transform: "translate(-50%, -50%)",
           }}
         >
           <div
             className="absolute left-0 top-0 origin-top-left"
             style={{
-              left: lensSize / 2 - zoomFocus.x * zoomScale,
-              top: lensSize / 2 - zoomFocus.y * zoomScale,
+              left: lensWidth / 2 - zoomFocus.x * zoomScale,
+              top: lensHeight / 2 - zoomFocus.y * zoomScale,
               transform: `scale(${zoomScale})`,
             }}
           >
@@ -1810,6 +2648,91 @@ function CardModalPreview({ card, visible, isZooming, zoomFocus, onPointerMove, 
           </div>
         </div>
       ) : null}
+    </div>
+  );
+}
+
+function ZoomLensPreview({ children, isZooming }) {
+  const lensWidth = 1080;
+  const lensHeight = 540;
+  const zoomScale = 5;
+  const [zoomFocus, setZoomFocus] = useState(null);
+  const lensVisible = Boolean(isZooming && zoomFocus);
+  const lensLeft = zoomFocus ? zoomFocus.x : lensWidth / 2;
+  const lensTop = zoomFocus ? zoomFocus.y : lensHeight / 2;
+
+  return (
+    <div
+      className="relative inline-block"
+      onPointerMove={(event) => {
+        if (!isZooming) return;
+        const bounds = event.currentTarget.getBoundingClientRect();
+        setZoomFocus({
+          x: event.clientX - bounds.left,
+          y: event.clientY - bounds.top,
+        });
+      }}
+      onPointerLeave={() => setZoomFocus(null)}
+      data-hoverable="true"
+    >
+      {children}
+
+      {lensVisible ? (
+        <div className="pointer-events-none absolute inset-0 overflow-hidden rounded-[18px] bg-black/16 backdrop-blur-[3px]" />
+      ) : null}
+
+      {lensVisible ? (
+        <div
+          className="pointer-events-none absolute overflow-hidden rounded-[22px] border-4 border-amber-200/95 bg-[#f7f0e4] shadow-[0_18px_36px_rgba(0,0,0,0.32)]"
+          style={{
+            left: lensLeft,
+            top: lensTop,
+            width: lensWidth,
+            height: lensHeight,
+            transform: "translate(-50%, -50%)",
+          }}
+        >
+          <div
+            className="absolute left-0 top-0 origin-top-left"
+            style={{
+              left: lensWidth / 2 - zoomFocus.x * zoomScale,
+              top: lensHeight / 2 - zoomFocus.y * zoomScale,
+              transform: `scale(${zoomScale})`,
+            }}
+          >
+            {children}
+          </div>
+        </div>
+      ) : null}
+    </div>
+  );
+}
+
+function FloatingModal({ children, onClose }) {
+  const contentRef = useRef(null);
+
+  useEffect(() => {
+    if (!onClose) return undefined;
+
+    const handlePointerDownCapture = (event) => {
+      const node = contentRef.current;
+      if (!node) return;
+      if (event.target instanceof Node && node.contains(event.target)) return;
+      event.preventDefault();
+      event.stopPropagation();
+      event.stopImmediatePropagation?.();
+      onClose();
+    };
+
+    window.addEventListener("pointerdown", handlePointerDownCapture, { capture: true });
+    return () => window.removeEventListener("pointerdown", handlePointerDownCapture, { capture: true });
+  }, [onClose]);
+
+  return (
+    <div className="pointer-events-none fixed inset-0 z-50 flex items-center justify-center p-4">
+      <div ref={contentRef} className="pointer-events-auto">
+        {children}
+      </div>
     </div>
   );
 }
@@ -1853,12 +2776,21 @@ function OverlayModal({ children, onClose }) {
   );
 }
 
-function RulebookModalContent({ document }) {
+function RulebookModalContent({ document, onClose }) {
   return (
     <div className="w-[min(760px,92vw)] rounded-[28px] bg-[#f7f0e4] p-6 text-stone-900 shadow-[0_24px_80px_rgba(0,0,0,0.28)]">
-      <p className="text-xs uppercase tracking-[0.24em] text-stone-500">Rulebook</p>
-      <h2 className="mt-1 text-3xl font-semibold">{document.title}</h2>
-      <div className="mt-5 max-h-[420px] overflow-y-auto rounded-[22px] border border-stone-900/8 bg-white/72 p-5 text-sm leading-7 whitespace-pre-wrap text-stone-700">
+      <div className="flex items-start justify-between gap-4">
+        <div>
+          <p className="text-xs uppercase tracking-[0.24em] text-stone-500">Rulebook</p>
+          <h2 className="mt-1 text-3xl font-semibold">{document.title}</h2>
+        </div>
+        {onClose ? (
+          <button type="button" onClick={onClose} className="rounded-2xl border border-stone-900/10 bg-white/70 px-4 py-2 text-sm font-semibold text-stone-700 transition hover:bg-white">
+            닫기
+          </button>
+        ) : null}
+      </div>
+      <div className="mt-5 max-h-[420px] overflow-hidden rounded-[22px] border border-stone-900/8 bg-white/72 p-5 text-sm leading-7 whitespace-pre-wrap text-stone-700">
         {document.body}
       </div>
     </div>
@@ -1867,22 +2799,39 @@ function RulebookModalContent({ document }) {
 
 function DecisionModal({ type, players, onSubmit }) {
   return (
-    <div className="w-[min(560px,92vw)] rounded-[28px] bg-[#f7f0e4] p-6 text-stone-900 shadow-[0_24px_80px_rgba(0,0,0,0.28)]">
+    <div className="w-[min(760px,94vw)] rounded-[28px] bg-[#f7f0e4] p-6 text-stone-900 shadow-[0_24px_80px_rgba(0,0,0,0.28)]">
       <p className="text-xs uppercase tracking-[0.24em] text-stone-500">{type === "nomination" ? "Nomination" : "Vote"}</p>
       <h2 className="mt-1 text-3xl font-semibold">{type === "nomination" ? "지목 대상을 선택하세요" : "투표 대상을 선택하세요"}</h2>
       <p className="mt-2 text-sm text-stone-600">모든 플레이어가 완료해야 결과가 공개됩니다. 기권도 가능합니다.</p>
-      <div className="mt-5 grid gap-2">
+      <div className="mt-5 grid grid-cols-2 gap-3">
         {players.map((player) => (
           <button
             key={player.id}
             type="button"
             onClick={() => onSubmit(player.id)}
-            className="rounded-2xl border border-stone-900/8 bg-white/72 px-4 py-3 text-left text-sm font-medium transition hover:bg-white"
+            className="group flex items-start gap-3 rounded-2xl border border-stone-900/8 bg-white/72 px-4 py-3 text-left transition hover:bg-white"
           >
-            {player.name}
+            <div className="shrink-0 overflow-hidden rounded-2xl border border-stone-900/8 bg-[#f8f1e8]">
+              <CharacterPortrait player={player} />
+            </div>
+            <div className="min-w-0 flex-1">
+              <div className="truncate text-[15px] font-semibold text-stone-900">
+                {characterProfiles[player.id]?.characterName ?? player.name}
+              </div>
+              <div className="mt-1 line-clamp-2 text-[12px] leading-snug text-stone-600">
+                {characterProfiles[player.id]?.tagline ?? ""}
+              </div>
+            </div>
+            <div className="shrink-0 self-center text-[12px] font-semibold text-stone-500 transition group-hover:text-stone-800">
+              선택
+            </div>
           </button>
         ))}
-        <button type="button" onClick={() => onSubmit("abstain")} className="rounded-2xl bg-stone-800 px-4 py-3 text-sm font-medium text-white transition hover:bg-stone-700">
+        <button
+          type="button"
+          onClick={() => onSubmit("abstain")}
+          className="col-span-2 rounded-2xl border border-stone-900/10 bg-stone-900 px-4 py-3 text-sm font-semibold text-white transition hover:bg-stone-800"
+        >
           기권
         </button>
       </div>
@@ -1892,29 +2841,76 @@ function DecisionModal({ type, players, onSubmit }) {
 
 function DecisionResultModal({ session, players, onClose }) {
   const result = session.result;
+  const highlightWinner = (targetId) => session.type === "vote" && result.winners?.includes(targetId);
   return (
-    <div className="w-[min(640px,92vw)] rounded-[28px] bg-[#f7f0e4] p-6 text-stone-900 shadow-[0_24px_80px_rgba(0,0,0,0.28)]">
+    <div className="w-[min(860px,94vw)] rounded-[28px] bg-[#f7f0e4] p-6 text-stone-900 shadow-[0_24px_80px_rgba(0,0,0,0.28)]">
       <p className="text-xs uppercase tracking-[0.24em] text-stone-500">{session.type === "nomination" ? "Nomination Result" : "Vote Result"}</p>
       <h2 className="mt-1 text-3xl font-semibold">{session.type === "nomination" ? "지목 결과" : "투표 결과"}</h2>
       {session.type === "nomination" ? (
-        <div className="mt-5 space-y-2">
+        <div className="mt-5 space-y-3">
           {result.lines.map((line, index) => (
-            <div key={`${line.from}-${line.to}-${index}`} className="rounded-2xl border border-stone-900/8 bg-white/72 px-4 py-3 text-sm">
-              {getPlayerName(players, line.from)} → {line.to === "abstain" ? "기권" : getPlayerName(players, line.to)}
+            <div key={`${line.from}-${line.to}-${index}`} className="grid grid-cols-[minmax(0,1fr)_56px_minmax(0,1fr)] items-center gap-3 rounded-2xl border border-stone-900/8 bg-white/72 px-4 py-4">
+              <div className="flex min-w-0 items-center gap-3">
+                <div className="overflow-hidden rounded-2xl border border-stone-900/8 bg-[#f8f1e8]">
+                  <CharacterPortrait player={players.find((p) => p.id === line.from)} />
+                </div>
+                <div className="min-w-0">
+                  <div className="text-sm font-semibold text-stone-900">{characterProfiles[line.from]?.characterName ?? getPlayerName(players, line.from)}</div>
+                  <div className="text-xs text-stone-600">{characterProfiles[line.from]?.tagline ?? ""}</div>
+                </div>
+              </div>
+
+              <div className="flex items-center justify-center text-[20px] font-extrabold text-stone-500">→</div>
+
+              {line.to === "abstain" ? (
+                <div className="flex items-center justify-end">
+                  <div className="rounded-2xl border border-dashed border-stone-900/15 bg-stone-900/5 px-4 py-2 text-sm font-semibold text-stone-600">
+                    기권
+                  </div>
+                </div>
+              ) : (
+                <div className="flex min-w-0 items-center justify-end gap-3">
+                  <div className="min-w-0 text-right">
+                    <div className="truncate text-sm font-semibold text-stone-900">{characterProfiles[line.to]?.characterName ?? getPlayerName(players, line.to)}</div>
+                    <div className="truncate text-xs text-stone-600">{characterProfiles[line.to]?.tagline ?? ""}</div>
+                  </div>
+                  <div className="overflow-hidden rounded-2xl border border-stone-900/8 bg-[#f8f1e8]">
+                    <CharacterPortrait player={players.find((p) => p.id === line.to)} />
+                  </div>
+                </div>
+              )}
             </div>
           ))}
         </div>
       ) : (
         <div className="mt-5">
-          <div className="space-y-2">
+          <div className="space-y-3">
             {result.counts.map((entry) => (
-              <div key={entry.targetId} className="rounded-2xl border border-stone-900/8 bg-white/72 px-4 py-3 text-sm">
-                {entry.targetId === "abstain" ? "기권" : getPlayerName(players, entry.targetId)}: {entry.count}표
+              <div
+                key={entry.targetId}
+                className={`flex items-center justify-between gap-3 rounded-2xl border bg-white/72 px-4 py-3 ${highlightWinner(entry.targetId) ? "border-amber-300 shadow-[0_0_0_2px_rgba(252,211,77,0.25)]" : "border-stone-900/8"}`}
+              >
+                {entry.targetId === "abstain" ? (
+                  <div className="text-sm font-semibold text-stone-700">기권</div>
+                ) : (
+                  <div className="flex min-w-0 items-center gap-3">
+                    <div className="overflow-hidden rounded-2xl border border-stone-900/8 bg-[#f8f1e8]">
+                      <CharacterPortrait player={players.find((p) => p.id === entry.targetId)} />
+                    </div>
+                    <div className="min-w-0">
+                      <div className="truncate text-sm font-semibold text-stone-900">{characterProfiles[entry.targetId]?.characterName ?? getPlayerName(players, entry.targetId)}</div>
+                      <div className="truncate text-xs text-stone-600">{characterProfiles[entry.targetId]?.tagline ?? ""}</div>
+                    </div>
+                  </div>
+                )}
+                <div className="shrink-0 rounded-2xl bg-stone-900/8 px-3 py-2 text-sm font-semibold text-stone-700">
+                  {entry.count}표
+                </div>
               </div>
             ))}
           </div>
-          <div className="mt-4 rounded-2xl bg-stone-800 px-4 py-3 text-sm font-medium text-white">
-            최다 득표: {result.winners.length ? result.winners.map((winner) => winner === "abstain" ? "기권" : getPlayerName(players, winner)).join(", ") : "없음"}
+          <div className="mt-4 rounded-2xl bg-stone-900 px-4 py-3 text-sm font-semibold text-white">
+            최다 득표: {result.winners.length ? result.winners.map((winner) => winner === "abstain" ? "기권" : (characterProfiles[winner]?.characterName ?? getPlayerName(players, winner))).join(", ") : "없음"}
           </div>
         </div>
       )}
@@ -1931,15 +2927,106 @@ function EmptyState({ label, light = false }) {
 
 function ActionButton({ children, onClick }) {
   return (
-    <button type="button" onClick={onClick} className="rounded-2xl bg-sky-400 px-4 py-2.5 text-sm font-medium text-slate-950 transition hover:bg-sky-300">
+    <button
+      type="button"
+      onClick={onClick}
+      className="rounded-2xl border border-white/12 bg-black/45 px-5 py-3 text-sm font-semibold text-white/88 shadow-[0_18px_34px_rgba(0,0,0,0.22)] transition hover:bg-black/55 hover:text-white active:translate-y-[1px]"
+    >
       {children}
     </button>
   );
 }
 
+function splitStorybookIntoPages(text) {
+  const normalized = String(text ?? "").trim();
+  if (!normalized) return ["스토리북이 비어 있습니다."];
+  const maxChars = 360;
+  const chunks = normalized
+    .split(/\n\s*\n/g)
+    .map((item) => item.trim())
+    .filter(Boolean)
+    .flatMap((paragraph) => {
+      if (paragraph.length <= maxChars) return [paragraph];
+      const parts = [];
+      let cursor = 0;
+      while (cursor < paragraph.length) {
+        const sliceEnd = Math.min(cursor + maxChars, paragraph.length);
+        const window = paragraph.slice(cursor, sliceEnd);
+        const lastNewline = window.lastIndexOf("\n");
+        const lastSpace = window.lastIndexOf(" ");
+        const breakAt = lastNewline > 120 ? lastNewline + 1 : lastSpace > 120 ? lastSpace + 1 : window.length;
+        parts.push(paragraph.slice(cursor, cursor + breakAt).trim());
+        cursor += breakAt;
+      }
+      return parts.filter(Boolean);
+    });
+
+  const pages = [];
+  let current = "";
+  chunks.forEach((chunk) => {
+    const next = current ? `${current}\n\n${chunk}` : chunk;
+    if (next.length > maxChars && current) {
+      pages.push(current);
+      current = chunk;
+      return;
+    }
+    current = next;
+  });
+  if (current) pages.push(current);
+  return pages.length ? pages : ["스토리북이 비어 있습니다."];
+}
+
+function StorybookModal({ player, storybook, pageIndex, onPrev, onNext, onClose }) {
+  const pages = splitStorybookIntoPages(storybook);
+  const safeIndex = clamp(pageIndex, 0, pages.length - 1);
+  return (
+    <div className="w-[min(820px,94vw)] rounded-[30px] bg-[#f7f0e4] p-7 text-stone-900 shadow-[0_24px_80px_rgba(0,0,0,0.28)]">
+      <div className="mb-5 flex items-start justify-between gap-4">
+        <div>
+          <div className="text-[11px] font-semibold uppercase tracking-[0.22em] text-stone-500">스토리북</div>
+          <div className="mt-1 text-2xl font-semibold">{characterProfiles[player.id]?.characterName ?? player.name}</div>
+          <div className="mt-1 text-sm text-stone-600">{characterProfiles[player.id]?.tagline ?? ""}</div>
+        </div>
+        <button type="button" onClick={onClose} className="rounded-2xl border border-stone-900/10 bg-white/70 px-4 py-2 text-sm font-semibold text-stone-700 transition hover:bg-white">
+          닫기
+        </button>
+      </div>
+
+      <div className="relative rounded-[22px] border border-stone-900/8 bg-white/72 p-6" data-hoverable="true">
+        <div className="mb-3 flex items-center justify-between text-xs text-stone-500">
+          <span>페이지 {safeIndex + 1} / {pages.length}</span>
+          <span className="font-semibold uppercase tracking-[0.22em]">읽기 모드</span>
+        </div>
+        <div className="max-h-[52vh] overflow-hidden pr-2 text-[15px] leading-7 text-stone-700 whitespace-pre-wrap">
+          {pages[safeIndex]}
+        </div>
+      </div>
+
+      <div className="mt-5 flex items-center justify-between gap-3">
+        <button
+          type="button"
+          onClick={onPrev}
+          disabled={safeIndex === 0}
+          className={`inline-flex h-12 items-center justify-center rounded-2xl px-5 text-sm font-semibold transition ${safeIndex === 0 ? "cursor-not-allowed bg-stone-900/5 text-stone-400" : "bg-stone-900/8 text-stone-700 hover:bg-stone-900/12"}`}
+        >
+          이전
+        </button>
+        <button
+          type="button"
+          onClick={() => onNext(pages.length)}
+          disabled={safeIndex >= pages.length - 1}
+          className={`inline-flex h-12 items-center justify-center rounded-2xl px-5 text-sm font-semibold transition ${safeIndex >= pages.length - 1 ? "cursor-not-allowed bg-stone-900/5 text-stone-400" : "bg-[#8f452f] text-white hover:bg-[#7c3d2a]"}`}
+        >
+          다음
+        </button>
+      </div>
+    </div>
+  );
+}
+
 function CharacterPortrait({ player, size = "small" }) {
   const canvasRef = useRef(null);
-  const dimensions = size === "profile" ? 120 : size === "large" ? 72 : 52;
+  const dimensions = size === "profile" ? 120 : size === "large" ? 104 : size === "micro" ? 32 : 52;
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -1968,14 +3055,15 @@ function CharacterPortrait({ player, size = "small" }) {
     return () => {
       cancelled = true;
     };
-  }, [player, dimensions]);
+  }, [dimensions, player?.id]);
 
   return (
     <canvas
       ref={canvasRef}
       width={dimensions}
       height={dimensions}
-      className={size === "profile" ? "h-[120px] w-[120px] bg-[#f8f1e8]" : size === "large" ? "h-[72px] w-[72px] bg-[#f8f1e8]" : "h-[52px] w-[52px] bg-[#f8f1e8]"}
+      className={size === "profile" ? "block h-[120px] w-[120px] shrink-0" : size === "large" ? "block h-[104px] w-[104px] shrink-0" : size === "micro" ? "block h-[32px] w-[32px] shrink-0" : "block h-[52px] w-[52px] shrink-0"}
+      style={{ imageRendering: "pixelated" }}
     />
   );
 }
@@ -2245,8 +3333,10 @@ function applyResizeSession(state, session, clientX, clientY, viewportScale) {
   const dy = pointer.y - session.origin.y;
 
   if (session.type === "map") {
-    const nextWidth = clamp(Math.round(session.startMapSize.width + dx), 960, 3200);
-    const nextHeight = clamp(Math.round(session.startMapSize.height + dy), 640, 2200);
+    const widthFromX = session.startMapSize.width + dx;
+    const widthFromY = session.startMapSize.width + dy * STAGE_ASPECT_RATIO;
+    const nextWidth = clamp(Math.round(Math.max(widthFromX, widthFromY)), 960, 3200);
+    const nextHeight = Math.round(nextWidth / STAGE_ASPECT_RATIO);
     return {
       ...state,
       mapSize: { width: nextWidth, height: nextHeight },
@@ -2346,7 +3436,7 @@ function movePlayerState(state, dx, dy, options = {}) {
     modalCardId: changedRoom ? null : state.modalCardId,
     tableActionCardId: changedRoom ? null : state.tableActionCardId,
     pendingAction: changedRoom ? null : state.pendingAction,
-    logs: changedRoom ? addLog(state.logs, `${player.name} 님이 ${getRoomName(state.rooms, player.currentRoom)}에서 ${getRoomName(state.rooms, nextPlayer.currentRoom)}(으)로 이동했습니다.`) : state.logs,
+    logs: changedRoom ? addLog(state.logs, buildRoomNotice(state, player.name, nextPlayer.currentRoom)) : state.logs,
   };
 }
 
@@ -2377,7 +3467,7 @@ function movePlayerTowardTargetState(state) {
       ...state,
       players: state.players.map((item) => (item.id === player.id ? nextPlayer : item)),
       walkTarget: null,
-      logs: changedRoom ? addLog(state.logs, `${player.name} 님이 ${getRoomName(state.rooms, player.currentRoom)}에서 ${getRoomName(state.rooms, nextPlayer.currentRoom)}(으)로 이동했습니다.`) : state.logs,
+      logs: changedRoom ? addLog(state.logs, buildRoomNotice(state, player.name, nextPlayer.currentRoom)) : state.logs,
     };
   }
   const ratio = PLAYER_STEP / distance;
@@ -2419,7 +3509,7 @@ function movePlayerToRoomState(state, roomId) {
     modalCardId: null,
     tableActionCardId: null,
     pendingAction: null,
-    logs: addLog(state.logs, `${player.name} 님이 ${getRoomName(state.rooms, player.currentRoom)}에서 ${room.name}(으)로 빠르게 이동했습니다.`),
+    logs: addLog(state.logs, buildRoomNotice(state, player.name, roomId)),
   };
 }
 
@@ -2458,7 +3548,9 @@ function getActivePlayer(state) {
 }
 
 function getPlayerName(players, playerId) {
-  return players.find((player) => player.id === playerId)?.name ?? "알 수 없음";
+  const player = players.find((item) => item.id === playerId) ?? null;
+  if (!player) return "알 수 없음";
+  return characterProfiles[player.id]?.characterName ?? player.name ?? "알 수 없음";
 }
 
 function getRoomName(rooms, roomId) {
@@ -2477,6 +3569,26 @@ function getFacingFromVector(dx, dy) {
 
 function addLog(logs, text) {
   return [...logs, { id: `l-${crypto.randomUUID()}`, text, timestamp: Date.now() }];
+}
+
+function hasFinalConsonant(koreanText) {
+  const trimmed = (koreanText ?? "").trim();
+  if (!trimmed) return false;
+  const code = trimmed.codePointAt(trimmed.length - 1);
+  if (!code) return false;
+  if (code < 0xac00 || code > 0xd7a3) return false;
+  return (code - 0xac00) % 28 !== 0;
+}
+
+function subjectParticle(word) {
+  return hasFinalConsonant(word) ? "이" : "가";
+}
+
+function buildRoomNotice(state, playerName, roomId) {
+  const particle = subjectParticle(playerName);
+  if (roomId === "lobby") return `${playerName}${particle} 로비로 돌아왔습니다.`;
+  const roomName = getRoomName(state.rooms, roomId);
+  return `${playerName}${particle} ${roomName} 밀담에 합류했습니다.`;
 }
 
 function getJumpOffset(player, now) {
@@ -2502,6 +3614,125 @@ function formatDuration(durationMs) {
   const minutes = Math.floor((totalSeconds % 3600) / 60);
   const seconds = totalSeconds % 60;
   return [hours, minutes, seconds].map((value) => String(value).padStart(2, "0")).join(":");
+}
+
+function formatDecisionOutcome(outcome, players) {
+  if (!outcome) return "";
+  const playerName = (id) => players.find((player) => player.id === id)?.name ?? id;
+  if (outcome.type === "nomination") {
+    const lines = outcome.result?.lines ?? [];
+    const pairs = lines
+      .map((line) => `${playerName(line.from)}→${playerName(line.to)}`)
+      .join(", ");
+    return `지목: ${pairs || "결과 없음"}`;
+  }
+  const winners = outcome.result?.winners ?? [];
+  const counts = outcome.result?.counts ?? [];
+  const maxCount = counts[0]?.count ?? 0;
+  const winnerLabel = winners.length
+    ? `${winners.map((id) => playerName(id)).join(", ")} (${maxCount}표)`
+    : "결과 없음";
+  return `투표: ${winnerLabel}`;
+}
+
+function formatLastDecisionBadge(outcome, playerId, players) {
+  if (!outcome) return "";
+  if (outcome.type === "nomination") {
+    const line = outcome.result?.lines?.find((item) => item.from === playerId) ?? null;
+    if (!line) return "";
+    if (line.to === "abstain") return "→ 기권";
+    const targetName = characterProfiles[line.to]?.characterName ?? getPlayerName(players, line.to);
+    return `→ ${targetName}`;
+  }
+  const entry = outcome.result?.counts?.find((item) => item.targetId === playerId) ?? null;
+  const count = entry?.count ?? 0;
+  return `${count}표`;
+}
+
+function DecisionOutcomeSummary({ outcome, players }) {
+  if (!outcome) return null;
+  const getPlayer = (id) => players.find((player) => player.id === id) ?? null;
+  const nameFor = (id) => characterProfiles[id]?.characterName ?? getPlayerName(players, id);
+
+  if (outcome.type === "nomination") {
+    const lines = outcome.result?.lines ?? [];
+    if (!lines.length) return <div className="text-[14px] font-semibold text-white/90">지목 결과 없음</div>;
+    return (
+      <div>
+        <div className="grid grid-cols-2 gap-x-3 gap-y-1.5">
+          {lines.map((line, index) => {
+            const fromPlayer = getPlayer(line.from);
+            const toPlayer = line.to === "abstain" ? null : getPlayer(line.to);
+            return (
+              <div key={`${line.from}-${line.to}-${index}`} className="flex min-w-0 items-center gap-2">
+                {fromPlayer ? (
+                  <div className="overflow-hidden rounded-lg border border-white/10 bg-[#f8f1e8]">
+                    <CharacterPortrait player={fromPlayer} size="micro" />
+                  </div>
+                ) : null}
+                <div className="min-w-0 truncate text-[11px] font-semibold text-white/90">
+                  {nameFor(line.from)}
+                </div>
+                <div className="shrink-0 text-[12px] font-extrabold text-white/55">→</div>
+                {line.to === "abstain" ? (
+                  <div className="shrink-0 rounded-lg border border-dashed border-white/20 bg-white/5 px-2 py-1 text-[10px] font-semibold text-white/75">기권</div>
+                ) : (
+                  <div className="min-w-0 truncate text-[11px] font-semibold text-white/90">
+                    {nameFor(line.to)}
+                  </div>
+                )}
+                {toPlayer ? (
+                  <div className="overflow-hidden rounded-lg border border-white/10 bg-[#f8f1e8]">
+                    <CharacterPortrait player={toPlayer} size="micro" />
+                  </div>
+                ) : null}
+              </div>
+            );
+          })}
+        </div>
+        <div className="pt-2 text-right text-[11px] font-semibold text-white/50">클릭해서 전체 보기</div>
+      </div>
+    );
+  }
+
+  const winners = outcome.result?.winners ?? [];
+  const counts = outcome.result?.counts ?? [];
+  const maxCount = counts[0]?.count ?? 0;
+  const topWinner = winners[0] ?? null;
+  if (!counts.length) return <div className="text-[14px] font-semibold text-white/90">투표 결과 없음</div>;
+  return (
+    <div>
+      <div className="flex flex-wrap gap-2">
+        {counts.map((entry) => {
+          if (entry.targetId === "abstain") {
+            return (
+              <div key={entry.targetId} className="flex items-center gap-2 rounded-xl border border-dashed border-white/20 bg-white/5 px-2 py-1 text-[11px] font-semibold text-white/80">
+                기권
+                <span className="rounded-lg bg-white/10 px-1.5 py-0.5 text-[10px] text-white/80">{entry.count}표</span>
+              </div>
+            );
+          }
+          const player = getPlayer(entry.targetId);
+          const isTop = entry.count === maxCount;
+          return (
+            <div
+              key={entry.targetId}
+              className={`flex items-center gap-2 rounded-xl border px-2 py-1 text-[11px] font-semibold ${isTop ? "border-amber-200/40 bg-amber-200/10 text-amber-50" : "border-white/10 bg-white/5 text-white/85"}`}
+            >
+              {player ? (
+                <div className="overflow-hidden rounded-lg border border-white/10 bg-[#f8f1e8]">
+                  <CharacterPortrait player={player} size="micro" />
+                </div>
+              ) : null}
+              <span className="max-w-[140px] truncate">{nameFor(entry.targetId)}</span>
+              <span className={`rounded-lg px-1.5 py-0.5 text-[10px] ${isTop ? "bg-amber-200/15 text-amber-200" : "bg-white/10 text-white/80"}`}>{entry.count}표</span>
+            </div>
+          );
+        })}
+      </div>
+      <div className="pt-2 text-right text-[11px] font-semibold text-white/50">클릭해서 전체 보기</div>
+    </div>
+  );
 }
 
 function resolveDecisionSubmission(state, playerId, targetId) {
@@ -2532,6 +3763,11 @@ function resolveDecisionSubmission(state, playerId, targetId) {
       ...session,
       responses: nextResponses,
       status: "complete",
+      result,
+    },
+    lastDecisionOutcome: {
+      type: session.type,
+      completedAt: Date.now(),
       result,
     },
   };
