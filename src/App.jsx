@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   BookOpen,
   DoorOpen,
@@ -38,8 +38,8 @@ const TAKE_ANIMATION_MS = 260;
 const SPEECH_BUBBLE_DURATION = 4000;
 const GM_NOTICE_DURATION = 6500;
 const SYSTEM_NOTICE_DURATION = 4200;
-const CHAT_FADE_DELAY_MS = 1500;
-const CHAT_FADE_DURATION_MS = 3500;
+const CHAT_ITEM_VISIBLE_MS = 3000;
+const CHAT_ITEM_FADE_MS = 300;
 const CARD_ATTENTION_MS = 3000;
 const BOARD_CARD_WIDTH = 45;
 const BOARD_CARD_HEIGHT = 60;
@@ -208,8 +208,9 @@ function createInitialState() {
       { id: "m3", roomId: "dining", senderId: "p3", text: "식당 영수증이 이상해. 누가 술을 더 시켰어.", timestamp: Date.now() - 1000 * 60 * 3 },
     ],
     logs: [
-      { id: "l1", text: "세션이 시작되었습니다. 넓은 로비와 세 개의 방에서 탐문이 진행 중입니다.", timestamp: Date.now() - 1000 * 60 * 10 },
+      { id: "l1", roomId: "lobby", text: "세션이 시작되었습니다. 넓은 로비와 세 개의 방에서 탐문이 진행 중입니다.", timestamp: Date.now() - 1000 * 60 * 10 },
     ],
+    feeds: {},
   };
 }
 
@@ -261,7 +262,7 @@ function loadState() {
 }
 
 function normalizeState(state) {
-  return {
+  const normalized = {
     ...state,
     tableActionCardId: typeof state.tableActionCardId === "string" ? state.tableActionCardId : null,
     profileModalPlayerId: typeof state.profileModalPlayerId === "string" ? state.profileModalPlayerId : null,
@@ -302,12 +303,29 @@ function normalizeState(state) {
       jumpUntil: typeof player.jumpUntil === "number" ? player.jumpUntil : 0,
       joinedRoomAt: player.joinedRoomAt && typeof player.joinedRoomAt === "object" ? player.joinedRoomAt : { [player.currentRoom]: Date.now() },
     })),
+    logs: (state.logs ?? []).map((log) => ({
+      ...log,
+      roomId: typeof log.roomId === "string" ? log.roomId : "lobby",
+    })),
   };
+
+  const feeds = normalized.feeds && typeof normalized.feeds === "object" ? normalized.feeds : {};
+  const nextFeeds = { ...feeds };
+  for (const player of normalized.players ?? []) {
+    if (!nextFeeds[player.id] || !Array.isArray(nextFeeds[player.id])) nextFeeds[player.id] = [];
+  }
+  normalized.feeds = nextFeeds;
+  return normalized;
 }
 
 function App() {
   const [state, setState] = useState(loadState);
   const [chatDraft, setChatDraft] = useState("");
+  const [chatCursorIndex, setChatCursorIndex] = useState(0);
+  const [chatAutocompleteIndex, setChatAutocompleteIndex] = useState(0);
+  const [isChatAutocompleteOpen, setIsChatAutocompleteOpen] = useState(false);
+  const [gmChatRoomId, setGmChatRoomId] = useState("lobby");
+  const [gmTopNotice, setGmTopNotice] = useState(null);
   const [dragCardId, setDragCardId] = useState(null);
   const [dragPreview, setDragPreview] = useState(null);
   const [dragPointer, setDragPointer] = useState(null);
@@ -317,7 +335,6 @@ function App() {
   const [cursorTooltipText, setCursorTooltipText] = useState("");
   const [viewportPointer, setViewportPointer] = useState({ x: 0, y: 0, visible: false });
   const [isChatFocused, setIsChatFocused] = useState(false);
-  const [lastChatActivityAt, setLastChatActivityAt] = useState(Date.now());
   const [hoveredHandCardId, setHoveredHandCardId] = useState(null);
   const [hoveredProfileCardId, setHoveredProfileCardId] = useState(null);
   const [viewportScale, setViewportScale] = useState(1);
@@ -339,6 +356,7 @@ function App() {
   const bgmAudioRef = useRef(null);
   const chatInputRef = useRef(null);
   const chatScrollRef = useRef(null);
+  const chatPinnedToBottomRef = useRef(true);
   const contactCardRef = useRef(null);
   const handTrayRef = useRef(null);
   const dragMetaRef = useRef(null);
@@ -349,9 +367,283 @@ function App() {
   const allowChatFocusRef = useRef(false);
   const activePlayer = getActivePlayer(state);
   const isCardAttentionActive = (cardId) => (state.cardAttention?.[cardId] ?? 0) > now;
-  const visibleMessages = state.messages
-    .filter((message) => message.roomId === activePlayer.currentRoom && message.timestamp >= (activePlayer.joinedRoomAt?.[activePlayer.currentRoom] ?? 0))
-    .sort((a, b) => a.timestamp - b.timestamp);
+  const effectiveChatRoomId = activePlayer.role === "GM" ? gmChatRoomId : activePlayer.currentRoom;
+  const characterNameOptions = useMemo(() => {
+    const names = state.players
+      .map((player) => characterProfiles[player.id]?.characterName ?? player.name)
+      .filter((name) => typeof name === "string" && name.trim().length > 0)
+      .map((name) => name.trim());
+    return [...new Set(names)].sort((a, b) => b.length - a.length || a.localeCompare(b, "ko"));
+  }, [state.players]);
+
+  const roomNameOptions = useMemo(() => {
+    const names = state.rooms
+      .map((room) => room?.name)
+      .filter((name) => typeof name === "string" && name.trim().length > 0)
+      .map((name) => name.trim());
+    return [...new Set(names)].sort((a, b) => b.length - a.length || a.localeCompare(b, "ko"));
+  }, [state.rooms]);
+
+  const chatAutocomplete = useMemo(() => {
+    const cursor = clamp(chatCursorIndex, 0, chatDraft.length);
+    const beforeCursor = chatDraft.slice(0, cursor);
+    const lastOpen = beforeCursor.lastIndexOf("[");
+    const lastClose = beforeCursor.lastIndexOf("]");
+    const isBracketQuery = lastOpen > lastClose;
+    let tokenStart = cursor;
+    let tokenEnd = cursor;
+    let query = "";
+
+    if (isBracketQuery) {
+      tokenStart = lastOpen + 1;
+      query = beforeCursor.slice(tokenStart);
+      const closingBracketIndex = chatDraft.indexOf("]", cursor);
+      tokenEnd = closingBracketIndex === -1 ? cursor : closingBracketIndex + 1;
+    } else {
+      let bestPrefixMatch = "";
+      for (const name of characterNameOptions) {
+        const maxLength = Math.min(name.length, beforeCursor.length);
+        for (let length = maxLength; length > bestPrefixMatch.length; length -= 1) {
+          const fragment = beforeCursor.slice(beforeCursor.length - length);
+          if (!fragment.trim()) continue;
+          if (name.toLowerCase().startsWith(fragment.toLowerCase())) {
+            bestPrefixMatch = fragment;
+            break;
+          }
+        }
+      }
+
+      if (bestPrefixMatch) {
+        tokenStart = cursor - bestPrefixMatch.length;
+        query = bestPrefixMatch;
+      } else {
+        while (tokenStart > 0) {
+          const previousChar = chatDraft[tokenStart - 1];
+          if (/\s/.test(previousChar) || previousChar === "[") break;
+          tokenStart -= 1;
+        }
+        query = chatDraft.slice(tokenStart, cursor);
+      }
+
+      tokenEnd = cursor;
+    }
+
+    const normalizedQuery = query.trim().toLowerCase();
+
+    if (!isChatFocused || normalizedQuery.length === 0) {
+      return { open: false, isBracketQuery: false, tokenStart: cursor, tokenEnd: cursor, query: "", suggestions: [] };
+    }
+
+    const suggestions = characterNameOptions
+      .filter((name) => name.toLowerCase().includes(normalizedQuery))
+      .slice(0, 6);
+
+    if (!suggestions.length) {
+      return { open: false, isBracketQuery, tokenStart, tokenEnd, query: normalizedQuery, suggestions: [] };
+    }
+
+    return { open: true, isBracketQuery, tokenStart, tokenEnd, query: normalizedQuery, suggestions };
+  }, [chatDraft, chatCursorIndex, characterNameOptions, isChatFocused]);
+
+  const applyChatAutocomplete = useCallback((name, draftOverride = null, cursorOverride = null) => {
+    const draft = typeof draftOverride === "string" ? draftOverride : chatInputRef.current?.value ?? chatDraft;
+    const rawCursor = typeof cursorOverride === "number"
+      ? cursorOverride
+      : chatInputRef.current?.selectionStart ?? draft.length;
+    const cursor = clamp(rawCursor, 0, draft.length);
+    const beforeCursor = draft.slice(0, cursor);
+    const lastOpen = beforeCursor.lastIndexOf("[");
+    const lastClose = beforeCursor.lastIndexOf("]");
+    const isBracketQuery = lastOpen > lastClose;
+    let replaceStart = chatAutocomplete.tokenStart;
+    let replaceEnd = chatAutocomplete.tokenEnd;
+    let insertion = `${name} `;
+
+    if (isBracketQuery) {
+      replaceStart = lastOpen + 1;
+      const closingBracketIndex = draft.indexOf("]", cursor);
+      replaceEnd = closingBracketIndex === -1 ? cursor : closingBracketIndex + 1;
+      insertion = `${name}] `;
+    } else {
+      const lowerName = name.toLowerCase();
+      let matchedLength = 0;
+      const maxLength = Math.min(name.length, beforeCursor.length);
+
+      for (let length = maxLength; length > 0; length -= 1) {
+        const fragment = beforeCursor.slice(beforeCursor.length - length);
+        if (!fragment.trim()) continue;
+        if (lowerName.startsWith(fragment.toLowerCase())) {
+          matchedLength = length;
+          break;
+        }
+      }
+
+      if (matchedLength > 0) {
+        replaceStart = cursor - matchedLength;
+        replaceEnd = cursor;
+      }
+
+      while (replaceEnd < draft.length && replaceEnd - replaceStart < name.length) {
+        const candidate = draft.slice(replaceStart, replaceEnd + 1).toLowerCase();
+        if (!lowerName.startsWith(candidate)) break;
+        replaceEnd += 1;
+      }
+    }
+
+    const after = draft.slice(replaceEnd);
+    const finalInsertion = after.startsWith(" ") ? insertion.trimEnd() : insertion;
+    const before = draft.slice(0, replaceStart);
+    const nextDraft = `${before}${finalInsertion}${after}`;
+    const nextCursor = (before + finalInsertion).length;
+
+    setChatDraft(nextDraft);
+    setChatCursorIndex(nextCursor);
+    setChatAutocompleteIndex(0);
+    setIsChatAutocompleteOpen(false);
+    window.requestAnimationFrame(() => {
+      const node = chatInputRef.current;
+      if (!node) return;
+      node.focus();
+      node.setSelectionRange(nextCursor, nextCursor);
+    });
+  }, [chatAutocomplete, chatDraft]);
+
+  const renderChatLine = useCallback((text, keyPrefix = "seg") => {
+    if (!text) return null;
+    if (!characterNameOptions.length) {
+      return (
+        <span className="chat-text-outline chat-text-outline-inline" data-text={text}>
+          {text}
+        </span>
+      );
+    }
+
+    const candidates = characterNameOptions;
+    const pieces = [];
+    let index = 0;
+    while (index < text.length) {
+      let match = null;
+      for (const name of candidates) {
+        if (!name) continue;
+        if (text.startsWith(name, index)) {
+          match = name;
+          break;
+        }
+      }
+      if (match) {
+        pieces.push({ text: match, highlight: true });
+        index += match.length;
+        continue;
+      }
+      pieces.push({ text: text[index], highlight: false });
+      index += 1;
+    }
+
+    const merged = [];
+    for (const piece of pieces) {
+      const last = merged[merged.length - 1];
+      if (last && last.highlight === piece.highlight) {
+        last.text += piece.text;
+      } else {
+        merged.push({ ...piece });
+      }
+    }
+
+    return merged.map((segment, segmentIndex) => (
+      <span
+        key={`${keyPrefix}-${segmentIndex}`}
+        className={`chat-text-outline chat-text-outline-inline ${segment.highlight ? "chat-name-highlight" : ""}`}
+        data-text={segment.text}
+      >
+        {segment.text}
+      </span>
+    ));
+  }, [characterNameOptions]);
+
+  const renderNoticeLine = useCallback((text, kind, keyPrefix = "notice") => {
+    if (!text) return null;
+
+    const candidates = [
+      ...characterNameOptions.map((name) => ({ name, type: "character" })),
+      ...roomNameOptions.map((name) => ({ name, type: "room" })),
+    ].filter((item) => item.name);
+
+    if (!candidates.length) {
+      return (
+        <span className={`chat-text-outline chat-text-outline-inline ${kind === "gm" ? "notice-outline-gm" : "notice-outline-system"}`} data-text={text}>
+          {text}
+        </span>
+      );
+    }
+
+    const pieces = [];
+    let index = 0;
+    while (index < text.length) {
+      let bestMatch = null;
+      for (const candidate of candidates) {
+        if (text.startsWith(candidate.name, index)) {
+          if (!bestMatch || candidate.name.length > bestMatch.name.length) {
+            bestMatch = candidate;
+          }
+        }
+      }
+
+      if (bestMatch) {
+        pieces.push({ text: bestMatch.name, type: bestMatch.type });
+        index += bestMatch.name.length;
+        continue;
+      }
+
+      pieces.push({ text: text[index], type: "normal" });
+      index += 1;
+    }
+
+    const merged = [];
+    for (const piece of pieces) {
+      const last = merged[merged.length - 1];
+      if (last && last.type === piece.type) {
+        last.text += piece.text;
+      } else {
+        merged.push({ ...piece });
+      }
+    }
+
+    return merged.map((segment, segmentIndex) => (
+      <span
+        key={`${keyPrefix}-${segmentIndex}`}
+        className={[
+          "chat-text-outline",
+          "chat-text-outline-inline",
+          kind === "gm" ? "notice-outline-gm" : "notice-outline-system",
+          segment.type === "character" ? "notice-character-highlight" : "",
+          segment.type === "room" ? "notice-room-highlight" : "",
+        ].filter(Boolean).join(" ")}
+        data-text={segment.text}
+      >
+        {segment.text}
+      </span>
+    ));
+  }, [characterNameOptions, roomNameOptions]);
+
+  const feedForActivePlayer = state.feeds?.[activePlayer.id] ?? [];
+  const visibleFeedItems = useMemo(() => {
+    const gmChatItems = feedForActivePlayer.filter((item) => item.kind === "gm_chat");
+    if (activePlayer.role === "GM") {
+      const roomItems = feedForActivePlayer.filter((item) => item.roomId === effectiveChatRoomId);
+      return [...roomItems, ...gmChatItems].sort((a, b) => a.timestamp - b.timestamp);
+    }
+    return [...feedForActivePlayer].sort((a, b) => a.timestamp - b.timestamp);
+  }, [activePlayer.role, effectiveChatRoomId, feedForActivePlayer]);
+
+  const latestGmMessage = useMemo(() => {
+    const gmIds = new Set(state.players.filter((player) => player.role === "GM").map((player) => player.id));
+    for (let index = feedForActivePlayer.length - 1; index >= 0; index -= 1) {
+      const item = feedForActivePlayer[index];
+      if (item.kind === "gm_chat") return item;
+      if (item.senderId && gmIds.has(item.senderId) && item.kind === "chat") return item;
+    }
+    return null;
+  }, [feedForActivePlayer, state.players]);
   const tableCards = state.cards.filter((card) => card.ownerId === null);
   const activeHandCards = state.cards.filter((card) => card.ownerId === activePlayer.id);
   const activeStorybookText = characterProfiles[activePlayer.id]?.storybook ?? "";
@@ -362,13 +654,21 @@ function App() {
   const hoveredProfileCard = hoveredProfileCardId ? state.cards.find((card) => card.id === hoveredProfileCardId) ?? null : null;
   const profilePlayer = state.players.find((player) => player.id === state.profileModalPlayerId) ?? null;
   const storybookPlayer = state.players.find((player) => player.id === state.storybookModalPlayerId) ?? null;
-  const activeRoomZone = state.rooms.find((room) => room.id === activePlayer.currentRoom) ?? null;
+  const viewRoomId = activePlayer.role === "GM" ? effectiveChatRoomId : activePlayer.currentRoom;
+  const activeRoomZone = state.rooms.find((room) => room.id === viewRoomId) ?? null;
   const activePlayerProfile = characterProfiles[activePlayer.id] ?? null;
   const selectedRoom = state.rooms.find((room) => room.id === state.selectedRoomId) ?? state.rooms[0];
   const renderPlayers = state.players.filter((player) => player.role !== "GM");
   const isMapEditing = activePlayer.role === "GM" && mapEditMode;
   const stageWidth = state.mapSize.width;
   const stageHeight = state.mapSize.height;
+  const chatRoomMembers = useMemo(() => {
+    const roomIdForMembers = activePlayer.role === "GM" ? effectiveChatRoomId : activePlayer.currentRoom;
+    return state.players
+      .filter((player) => player.role !== "GM" && player.currentRoom === roomIdForMembers)
+      .map((player) => player.name)
+      .filter((name) => typeof name === "string" && name.trim().length > 0);
+  }, [activePlayer.currentRoom, activePlayer.role, effectiveChatRoomId, state.players]);
   const elapsedTimerMs = state.stopwatchStartedAt ? state.stopwatchElapsedMs + (now - state.stopwatchStartedAt) : state.stopwatchElapsedMs;
   const effectiveTimeMs = Math.max(0, state.timerDurationSec * 1000 - elapsedTimerMs);
   const nonGmPlayers = state.players.filter((player) => player.role !== "GM");
@@ -392,20 +692,16 @@ function App() {
       }, [])
       .map((message) => [message.senderId, truncateSpeech(message.text)]),
   );
-  const gmNoticeMessage = state.messages
-    .filter((message) => message.roomId === activePlayer.currentRoom && now - message.timestamp <= GM_NOTICE_DURATION)
-    .map((message) => ({ message, sender: state.players.find((player) => player.id === message.senderId) ?? null }))
-    .filter((item) => item.sender?.role === "GM")
-    .sort((a, b) => a.message.timestamp - b.message.timestamp);
-  const systemNotices = state.logs
-    .filter((log) => now - log.timestamp <= SYSTEM_NOTICE_DURATION)
-    .sort((a, b) => a.timestamp - b.timestamp);
-  const activeNotices = [
-    ...gmNoticeMessage.map((item) => ({ id: item.message.id, timestamp: item.message.timestamp, text: item.message.text, kind: "gm" })),
-    ...systemNotices.map((log) => ({ id: log.id, timestamp: log.timestamp, text: log.text, kind: "system" })),
-  ].sort((a, b) => a.timestamp - b.timestamp);
-  const visibleNotices = activeNotices.slice(-3);
-  const bottomStackNotices = [...visibleNotices].reverse();
+  const roomNameById = useMemo(() => Object.fromEntries(state.rooms.map((room) => [room.id, room.name])), [state.rooms]);
+  const currentRoomName = roomNameById[effectiveChatRoomId] ?? "";
+
+  const chatFeedItems = visibleFeedItems;
+
+  const visibleChatFeedItems = useMemo(() => {
+    if (isChatFocused) return chatFeedItems;
+    const maxAge = CHAT_ITEM_VISIBLE_MS + CHAT_ITEM_FADE_MS;
+    return chatFeedItems.filter((item) => now - item.timestamp <= maxAge);
+  }, [chatFeedItems, isChatFocused, now]);
 
   useEffect(() => {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
@@ -512,15 +808,47 @@ function App() {
     }
   }, [state.bgmPlaying, state.bgmMuted, state.bgmVolume]);
 
-  useEffect(() => {
+  const scrollChatToBottom = useCallback(() => {
     const chatNode = chatScrollRef.current;
     if (!chatNode) return;
     chatNode.scrollTop = chatNode.scrollHeight;
-  }, [activePlayer.currentRoom, visibleMessages.length]);
+  }, []);
+
+  useEffect(() => {
+    const chatNode = chatScrollRef.current;
+    if (!chatNode) return;
+
+    const handleScroll = () => {
+      const distanceFromBottom = chatNode.scrollHeight - chatNode.scrollTop - chatNode.clientHeight;
+      chatPinnedToBottomRef.current = distanceFromBottom <= 24;
+    };
+
+    chatNode.addEventListener("scroll", handleScroll, { passive: true });
+    handleScroll();
+    return () => chatNode.removeEventListener("scroll", handleScroll);
+  }, []);
+
+  useEffect(() => {
+    // 활성/비활성 전환 순간에는 항상 최신(바닥)으로 고정
+    scrollChatToBottom();
+    chatPinnedToBottomRef.current = true;
+  }, [isChatFocused, scrollChatToBottom]);
+
+  useEffect(() => {
+    // 기본은 최신 유지. 사용자가 위로 올려둔 상태면 유지.
+    if (chatPinnedToBottomRef.current) {
+      scrollChatToBottom();
+    }
+  }, [activePlayer.currentRoom, chatFeedItems.length, effectiveChatRoomId, scrollChatToBottom]);
 
   useEffect(() => {
     contactCardRef.current = contactCard;
   }, [contactCard]);
+
+  useEffect(() => {
+    if (!latestGmMessage) return;
+    setGmTopNotice({ id: latestGmMessage.id, text: latestGmMessage.text, timestamp: latestGmMessage.timestamp });
+  }, [latestGmMessage?.id]);
 
   useEffect(() => {
     setGmPeekFaceUp(false);
@@ -545,9 +873,9 @@ function App() {
 
   useEffect(() => {
     const updateViewportScale = () => {
-      const availableWidth = Math.max(window.innerWidth - 32, 320);
-      const availableHeight = Math.max(window.innerHeight - 32, 180);
-      setViewportScale(Math.min(availableWidth / stageWidth, availableHeight / stageHeight, 1));
+      const availableWidth = Math.max(window.innerWidth, 1);
+      const availableHeight = Math.max(window.innerHeight, 1);
+      setViewportScale(Math.min(availableWidth / stageWidth, availableHeight / stageHeight));
     };
     updateViewportScale();
     window.addEventListener("resize", updateViewportScale);
@@ -682,6 +1010,34 @@ function App() {
       window.removeEventListener("blur", handleWindowBlur);
     };
   }, []);
+
+  useEffect(() => {
+    const handlePointerDownCapture = (event) => {
+      if (activePlayer.role !== "GM") return;
+      if (isAltZooming) return;
+      if (isMapEditing) return;
+      const viewportNode = viewportRef.current;
+      if (!viewportNode) return;
+      const rect = viewportNode.getBoundingClientRect();
+      const withinViewport = event.clientX >= rect.left && event.clientX <= rect.right && event.clientY >= rect.top && event.clientY <= rect.bottom;
+      if (!withinViewport) return;
+
+      const element = event.target instanceof Element ? event.target : null;
+      const roomNode = element ? element.closest("[data-room-id]") : null;
+      if (!roomNode) {
+        if (isChatFocused) {
+          event.preventDefault();
+        }
+        setGmChatRoomId("lobby");
+        if (isChatFocused) {
+          window.requestAnimationFrame(() => chatInputRef.current?.focus());
+        }
+      }
+    };
+
+    window.addEventListener("pointerdown", handlePointerDownCapture, { capture: true });
+    return () => window.removeEventListener("pointerdown", handlePointerDownCapture, { capture: true });
+  }, [activePlayer.role, isAltZooming, isChatFocused, isMapEditing]);
 
   useEffect(() => {
     const moveTimer = window.setInterval(() => {
@@ -851,15 +1207,38 @@ function App() {
     event.preventDefault();
     const text = chatDraft.trim();
     if (!text) return;
-    setLastChatActivityAt(Date.now());
     setState((current) => {
       const player = getActivePlayer(current);
+      const timestamp = Date.now();
+      const messageId = `m-${crypto.randomUUID()}`;
+      const gmIds = gmPlayerIds(current);
+      const sender = current.players.find((p) => p.id === player.id) ?? player;
+      const isGmSender = sender.role === "GM";
+      const roomId = player.currentRoom;
+      const feedItem = { id: `f-${crypto.randomUUID()}`, kind: isGmSender ? "gm_chat" : "chat", roomId: isGmSender ? null : roomId, senderId: player.id, text, timestamp };
+
+      let nextFeeds = current.feeds ?? {};
+      if (isGmSender) {
+        const allPlayerIds = current.players.map((p) => p.id);
+        for (const id of allPlayerIds) {
+          nextFeeds = addFeedItem(nextFeeds, id, feedItem);
+        }
+      } else {
+        const observers = [
+          ...nonGmPlayersInRoom(current, roomId).map((p) => p.id),
+          ...gmIds,
+        ];
+        for (const id of observers) {
+          nextFeeds = addFeedItem(nextFeeds, id, feedItem);
+        }
+      }
       return {
         ...current,
         messages: [
           ...current.messages,
-          { id: `m-${crypto.randomUUID()}`, roomId: player.currentRoom, senderId: player.id, text, timestamp: Date.now() },
+          { id: messageId, roomId: player.currentRoom, senderId: player.id, text, timestamp },
         ],
+        feeds: nextFeeds,
         logs: current.logs,
       };
     });
@@ -1325,10 +1704,7 @@ function App() {
   const totalStageScale = 1;
   const stageTransformOrigin = "center center";
   const modalCardScale = 1;
-  const chatFadeProgress = isChatFocused
-    ? 0
-    : Math.max(0, (now - lastChatActivityAt - CHAT_FADE_DELAY_MS) / Math.max(CHAT_FADE_DURATION_MS, 1));
-  const chatOpacity = isChatFocused ? 1 : clamp(1 - chatFadeProgress, 0, 1);
+  const chatOpacity = 1;
 
   const renderStageScene = ({ isLens }) => (
     <>
@@ -1347,13 +1723,23 @@ function App() {
         </div>
       ) : null}
 
-      <div className="absolute inset-0 z-10">
-        {activeRoomZone ? (
-          <>
-            <div className="pointer-events-none absolute left-0 top-0 bg-black/42" style={{ width: stageWidth, height: activeRoomZone.y }} />
-            <div
-              className="pointer-events-none absolute left-0 bg-black/42"
-              style={{ top: activeRoomZone.y, width: activeRoomZone.x, height: activeRoomZone.height }}
+	      <div className="absolute inset-0 z-10">
+	        {viewRoomId === "lobby" ? (
+	          <>
+	            {state.rooms.map((room) => (
+	              <div
+	                key={`lobby-dim-${room.id}`}
+	                className="pointer-events-none absolute bg-black/42"
+	                style={{ left: room.x, top: room.y, width: room.width, height: room.height }}
+	              />
+	            ))}
+	          </>
+	        ) : activeRoomZone ? (
+	          <>
+	            <div className="pointer-events-none absolute left-0 top-0 bg-black/42" style={{ width: stageWidth, height: activeRoomZone.y }} />
+	            <div
+	              className="pointer-events-none absolute left-0 bg-black/42"
+	              style={{ top: activeRoomZone.y, width: activeRoomZone.x, height: activeRoomZone.height }}
             />
             <div
               className="pointer-events-none absolute bg-black/42"
@@ -1388,9 +1774,26 @@ function App() {
           return (
             <div
               key={room.id}
-              className={`absolute border-4 border-dashed bg-white/6 text-left text-white/95 ${isMapEditing ? "pointer-events-auto border-amber-300 shadow-[0_0_0_3px_rgba(252,211,77,0.32)]" : "pointer-events-none border-cyan-200/90 shadow-[0_0_0_2px_rgba(165,243,252,0.16)]"}`}
+              data-room-id={room.id}
+              className={`absolute border-4 border-dashed bg-white/6 text-left text-white/95 ${
+                isMapEditing
+                  ? "pointer-events-auto border-amber-300 shadow-[0_0_0_3px_rgba(252,211,77,0.32)]"
+                  : activePlayer.role === "GM" && !isLens
+                    ? "pointer-events-auto border-cyan-200/90 shadow-[0_0_0_2px_rgba(165,243,252,0.16)] hover:bg-white/10"
+                    : "pointer-events-none border-cyan-200/90 shadow-[0_0_0_2px_rgba(165,243,252,0.16)]"
+              }`}
               style={{ left: room.x, top: room.y, width: room.width, height: room.height }}
               data-hoverable={!isLens && isMapEditing ? "true" : undefined}
+              onPointerDown={!isLens && !isMapEditing && activePlayer.role === "GM" && isChatFocused ? (event) => {
+                event.preventDefault();
+              } : undefined}
+              onClick={!isLens && !isMapEditing && activePlayer.role === "GM" ? (event) => {
+                event.stopPropagation();
+                setGmChatRoomId(room.id);
+                if (isChatFocused) {
+                  window.requestAnimationFrame(() => chatInputRef.current?.focus());
+                }
+              } : undefined}
             >
               <button
                 type="button"
@@ -1417,7 +1820,7 @@ function App() {
           <div key={player.id} className="absolute z-30 -translate-x-1/2 -translate-y-1/2" style={{ left: player.x, top: player.y }}>
             <div className="relative h-24 w-20" style={{ transform: `translateY(${getJumpOffset(player, now)}px)` }}>
               {visibleSpeechByPlayer[player.id] ? (
-                <div className="absolute left-1/2 top-[-70px] z-30 min-w-[120px] max-w-[220px] -translate-x-1/2 rounded-[16px] bg-[#fff8ec] px-3 py-2 text-center text-[11px] leading-[1.45] text-stone-800 shadow-[0_12px_24px_rgba(0,0,0,0.18)] whitespace-pre-wrap break-words">
+                <div className="absolute left-1/2 top-[-84px] z-30 min-w-[180px] max-w-[330px] max-h-[320px] -translate-x-1/2 overflow-y-auto rounded-[16px] bg-[#fff8ec] px-3 py-2 text-center text-[13px] leading-[1.45] text-stone-800 shadow-[0_12px_24px_rgba(0,0,0,0.18)] whitespace-pre-wrap break-words">
                   <div className="absolute left-1/2 top-full h-2 w-2 -translate-x-1/2 -translate-y-1/2 rotate-45 bg-[#fff8ec]" />
                   {visibleSpeechByPlayer[player.id]}
                 </div>
@@ -1428,19 +1831,18 @@ function App() {
                 type="button"
                 onClick={!isLens ? () => openProfile(player.id) : undefined}
                 onPointerDown={!isLens && isMapEditing ? (event) => beginPlayerDrag(event, player.id) : undefined}
+                onPointerEnter={() => setCursorTooltipText(!isLens ? "프로필 보기" : "")}
+                onPointerLeave={() => setCursorTooltipText("")}
                 className="group absolute left-1/2 top-[-26px] z-20 -translate-x-1/2 transition"
                 data-hoverable={!isLens ? "true" : undefined}
               >
-                <span
-                  className="inline-block whitespace-nowrap px-1 py-1 text-[13px] font-medium leading-none tracking-[-0.01em] text-white drop-shadow-[0_2px_10px_rgba(0,0,0,0.25)]"
-                  style={{
-                    WebkitTextStroke: "3px rgba(0,0,0,0.92)",
-                    WebkitTextFillColor: "#ffffff",
-                    color: "#ffffff",
-                    textShadow: "0 2px 10px rgba(0,0,0,0.25)",
-                  }}
-                >
-                  {player.name}{player.role === "GM" ? " • GM" : ""}
+                <span className="inline-block whitespace-nowrap px-1 py-1 text-[13px] font-extrabold leading-none tracking-[-0.01em] text-white drop-shadow-[0_2px_10px_rgba(0,0,0,0.25)]">
+                  <span
+                    className="chat-text-outline chat-text-outline-inline"
+                    data-text={`${player.name}${player.role === "GM" ? " • GM" : ""}`}
+                  >
+                    {player.name}{player.role === "GM" ? " • GM" : ""}
+                  </span>
                 </span>
               </button>
             </div>
@@ -1474,12 +1876,21 @@ function App() {
     </>
   );
 
-  return (
-    <div className="flex h-screen w-screen select-none items-center justify-center overflow-hidden bg-[radial-gradient(circle_at_top_left,rgba(214,169,92,0.18),transparent_20%),radial-gradient(circle_at_top_right,rgba(157,60,43,0.14),transparent_18%),linear-gradient(180deg,#214739_0%,#16372d_100%)] p-4 text-stone-100">
-      <div
-        className={`pointer-events-none fixed z-[120] -translate-x-1/2 -translate-y-1/2 rounded-full transition-[width,height,background-color,border-color,box-shadow,transform,opacity] duration-150 ${cursorState.visible ? "opacity-100" : "opacity-0"} ${cursorState.interactive ? "h-12 w-12 border border-amber-200/80 bg-amber-100/14 shadow-[0_0_0_6px_rgba(253,230,138,0.12)]" : "h-5 w-5 border border-white/75 bg-white/10 shadow-[0_0_0_2px_rgba(255,255,255,0.08)]"}`}
-        style={{ left: cursorState.x, top: cursorState.y }}
-      >
+	  return (
+	    <div className="flex h-screen w-screen select-none items-center justify-center overflow-hidden bg-black p-0 text-stone-100">
+	      {gmTopNotice && now - gmTopNotice.timestamp <= CHAT_ITEM_VISIBLE_MS ? (
+	        <div className="pointer-events-none fixed left-1/2 top-10 z-[115] w-[min(980px,92vw)] -translate-x-1/2 text-center">
+	          <div className="inline-flex max-w-full items-center justify-center px-6 py-2 text-[22px] font-extrabold text-white/90">
+	            <span className="chat-text-outline chat-text-outline-inline chat-gm-notice" data-text={gmTopNotice.text}>
+	              {gmTopNotice.text}
+	            </span>
+	          </div>
+	        </div>
+	      ) : null}
+	      <div
+	        className={`pointer-events-none fixed z-[120] -translate-x-1/2 -translate-y-1/2 rounded-full transition-[width,height,background-color,border-color,box-shadow,transform,opacity] duration-150 ${cursorState.visible ? "opacity-100" : "opacity-0"} ${cursorState.interactive ? "h-12 w-12 border border-amber-200/80 bg-amber-100/14 shadow-[0_0_0_6px_rgba(253,230,138,0.12)]" : "h-5 w-5 border border-white/75 bg-white/10 shadow-[0_0_0_2px_rgba(255,255,255,0.08)]"}`}
+	        style={{ left: cursorState.x, top: cursorState.y }}
+	      >
         <div className={`absolute left-1/2 top-1/2 rounded-full bg-white/85 transition-all duration-150 ${cursorState.interactive ? "h-1.5 w-1.5 -translate-x-1/2 -translate-y-1/2" : "h-1 w-1 -translate-x-1/2 -translate-y-1/2"}`} />
       </div>
 
@@ -1496,11 +1907,40 @@ function App() {
         </div>
       ) : null}
 
-      <div
-        ref={viewportRef}
-        className="relative shrink-0 overflow-hidden rounded-[18px]"
-        style={{ width: stageWidth * viewportScale, height: stageHeight * viewportScale }}
-      >
+	      <div
+	        ref={viewportRef}
+	        className="relative shrink-0 overflow-hidden"
+		        style={{ width: stageWidth * viewportScale, height: stageHeight * viewportScale }}
+		        onPointerDownCapture={(event) => {
+		          if (activePlayer.role !== "GM") return;
+		          if (isAltZooming) return;
+		          if (isMapEditing) return;
+		          const element = event.target instanceof Element ? event.target : null;
+		          const roomNode = element ? element.closest("[data-room-id]") : null;
+		          if (!roomNode) {
+		            if (isChatFocused) {
+		              event.preventDefault();
+		            }
+		            setGmChatRoomId("lobby");
+		            if (isChatFocused) {
+		              window.requestAnimationFrame(() => chatInputRef.current?.focus());
+		            }
+		          }
+		        }}
+		        onClickCapture={(event) => {
+		          if (activePlayer.role !== "GM") return;
+		          if (isAltZooming) return;
+		          if (isMapEditing) return;
+		          const element = event.target instanceof Element ? event.target : null;
+		          const roomNode = element ? element.closest("[data-room-id]") : null;
+		          if (!roomNode) {
+		            setGmChatRoomId("lobby");
+		            if (isChatFocused) {
+		              window.requestAnimationFrame(() => chatInputRef.current?.focus());
+		            }
+		          }
+		        }}
+		      >
       <div className={`pointer-events-none absolute bottom-5 right-5 z-[110] transition ${isMapEditing ? "opacity-35" : ""}`}>
         <div className="pointer-events-auto flex items-center gap-3 rounded-[18px] border border-white/10 bg-black/22 px-4 py-2 text-white shadow-[0_18px_40px_rgba(0,0,0,0.18)] backdrop-blur-sm">
           <button
@@ -1804,36 +2244,7 @@ function App() {
           </div>
         </div>
 
-        {visibleNotices.length && !modalCard ? (
-          <div className={`pointer-events-none absolute left-1/2 top-[110px] z-40 w-[min(980px,92vw)] -translate-x-1/2 transition ${isMapEditing ? "opacity-35" : ""}`}>
-            <div className="mx-auto flex flex-col-reverse items-center gap-1">
-              {bottomStackNotices.map((notice) => (
-                <div
-                  key={notice.id}
-                  className={`px-5 text-center font-bold tracking-[0.02em] text-yellow-200 ${notice.kind === "gm" ? "py-3 text-[22px]" : "py-2 text-[18px] text-yellow-200/95"}`}
-                  style={{
-                    fontWeight: 700,
-                    textShadow: notice.kind === "gm" ? "0 10px 24px rgba(0,0,0,0.35)" : "0 10px 22px rgba(0,0,0,0.32)",
-                  }}
-                >
-                  <span className="relative inline-block">
-                    <span
-                      className="absolute inset-0"
-                      style={{
-                        WebkitTextStroke: notice.kind === "gm" ? "2px rgba(0,0,0,0.92)" : "1.6px rgba(0,0,0,0.9)",
-                        color: "transparent",
-                      }}
-                      aria-hidden="true"
-                    >
-                      {notice.text}
-                    </span>
-                    <span className="relative">{notice.text}</span>
-                  </span>
-                </div>
-              ))}
-            </div>
-          </div>
-        ) : null}
+        {null}
 
         {showTimerPanel ? (
           <div className={`pointer-events-none fixed left-1/2 top-5 z-[65] flex -translate-x-1/2 flex-row items-stretch gap-3 transition ${isMapEditing ? "opacity-35" : ""}`}>
@@ -2032,54 +2443,179 @@ function App() {
           style={{ opacity: chatOpacity, transition: "opacity 520ms ease" }}
         >
           <div className="flex h-[min(58vh,640px)] min-h-[420px] flex-col">
-            <div className="mb-5 text-[22px] font-semibold leading-tight text-white/88">{getRoomName(state.rooms, activePlayer.currentRoom)}</div>
+            {isChatFocused ? (
+              <div className="mb-5 flex flex-wrap items-baseline gap-x-4 gap-y-1 text-white/88">
+                <div className="text-[22px] font-semibold leading-tight">{getRoomName(state.rooms, activePlayer.role === "GM" ? effectiveChatRoomId : activePlayer.currentRoom)}</div>
+                {chatRoomMembers.length ? (
+                  <div className="text-[15px] font-semibold text-white/55">
+                    {chatRoomMembers.join(", ")}
+                  </div>
+                ) : (
+                  <div className="text-[15px] font-semibold text-white/35">참여자 없음</div>
+                )}
+              </div>
+            ) : null}
             <div
               ref={chatScrollRef}
               className={`mb-6 min-h-[140px] flex-1 overflow-y-auto pr-2 ${isChatFocused ? "pointer-events-auto" : "pointer-events-none"}`}
             >
-              <div className="flex min-h-full flex-col justify-end gap-3">
-                {visibleMessages.length ? visibleMessages.map((message) => {
-                  const sender = state.players.find((player) => player.id === message.senderId);
-                  return (
-                    <article key={message.id} className="px-3 py-2.5">
-                      <div className="flex items-center justify-between gap-3">
-                        <strong className="text-sm">{sender?.name ?? "알 수 없음"}</strong>
-                        <span className="text-xs text-white/45">{formatTime(message.timestamp)}</span>
+	              <div className="flex min-h-full flex-col justify-end gap-0.5">
+                {visibleChatFeedItems.length ? visibleChatFeedItems.map((item) => {
+                  const ageMs = now - item.timestamp;
+                  const itemOpacity = isChatFocused
+                    ? 1
+                    : ageMs <= CHAT_ITEM_VISIBLE_MS
+                      ? 1
+                      : clamp(1 - (ageMs - CHAT_ITEM_VISIBLE_MS) / Math.max(CHAT_ITEM_FADE_MS, 1), 0, 1);
+
+                  const showMoveDivider = item.kind === "move" && item.actorId === activePlayer.id;
+
+                  if (showMoveDivider) {
+                    // 구분선은 투명도 없이 고정 표시
+                    // (비활성 상태에서는 item 자체가 필터링될 수 있음)
+                  }
+
+                  if (item.kind === "move" || item.kind === "enter" || item.kind === "leave") {
+                    return (
+                      <div key={item.id}>
+                        {showMoveDivider ? (
+                          <div className="px-3 py-1">
+                            <div className="h-px w-full bg-white/10" />
+                          </div>
+                        ) : null}
+                        <article className="px-3 py-1" style={{ opacity: itemOpacity }}>
+                        <div className="flex justify-end">
+                          <span className="text-xs text-white/45">{formatTime(item.timestamp)}</span>
+                        </div>
+                        <p className="mt-0.5 text-[21px] font-extrabold text-white/80">
+                          <span className="chat-text-outline chat-text-outline-inline chat-system-highlight" data-text="SYSTEM : ">
+                            SYSTEM :{" "}
+                          </span>
+                          {renderNoticeLine(item.text, "system", item.id)}
+                        </p>
+                      </article>
                       </div>
-                      <p className="mt-1 text-sm text-white/80">{message.text}</p>
+                    );
+                  }
+
+                  const sender = state.players.find((player) => player.id === item.senderId);
+                  const senderName = sender?.name ?? "알 수 없음";
+                  return (
+                    <div key={item.id}>
+                      {showMoveDivider ? (
+                        <div className="px-3 py-1">
+                          <div className="h-px w-full bg-white/10" />
+                        </div>
+                      ) : null}
+                      <article className="px-3 py-1" style={{ opacity: itemOpacity }}>
+                      <div className="flex justify-end">
+                        <span className="text-xs text-white/45">{formatTime(item.timestamp)}</span>
+                      </div>
+                      <p className="mt-0.5 text-[21px] font-extrabold text-white/80">
+                        {item.kind === "gm_chat" || sender?.role === "GM" ? (
+                          <span className="chat-text-outline chat-text-outline-inline chat-gm-notice" data-text={item.text}>
+                            {item.text}
+                          </span>
+                        ) : (
+                          <>
+                            <span className="chat-text-outline chat-text-outline-inline chat-speaker-highlight" data-text={`${senderName} : `}>
+                              {senderName} :{" "}
+                            </span>
+                            {renderChatLine(item.text, item.id)}
+                          </>
+                        )}
+                      </p>
                     </article>
+                    </div>
                   );
                 }) : null}
               </div>
             </div>
             <form onSubmit={submitChat} className="pointer-events-auto flex gap-3">
-              <input
-                ref={chatInputRef}
-                value={chatDraft}
-                onChange={(event) => setChatDraft(event.target.value)}
-                onFocus={() => {
-                  if (!allowChatFocusRef.current) {
-                    chatInputRef.current?.blur();
-                    return;
-                  }
-                  allowChatFocusRef.current = false;
-                  setIsChatFocused(true);
-                  setLastChatActivityAt(Date.now());
-                }}
-                onBlur={() => {
-                  setIsChatFocused(false);
-                  setLastChatActivityAt(Date.now());
-                }}
-                onMouseDown={(event) => {
-                  if (!isChatFocused) {
-                    event.preventDefault();
-                    event.stopPropagation();
-                  }
-                }}
-                maxLength={180}
-                placeholder="Enter로 입력 활성화, Enter로 전송"
-                className="h-12 flex-1 rounded-2xl border border-white/15 bg-black/15 px-4 text-sm text-white outline-none placeholder:text-white/35 focus:border-emerald-200/50"
-              />
+              <div className="relative flex-1">
+                <input
+                  ref={chatInputRef}
+                  value={chatDraft}
+                  onChange={(event) => {
+                    setChatDraft(event.target.value);
+                    setChatCursorIndex(event.target.selectionStart ?? event.target.value.length);
+                    setChatAutocompleteIndex(0);
+                    setIsChatAutocompleteOpen(true);
+                  }}
+                  onKeyDown={(event) => {
+                    if (!chatAutocomplete.open) return;
+                    if (event.key === "ArrowDown") {
+                      event.preventDefault();
+                      setChatAutocompleteIndex((current) => (current + 1) % chatAutocomplete.suggestions.length);
+                      return;
+                    }
+                    if (event.key === "ArrowUp") {
+                      event.preventDefault();
+                      setChatAutocompleteIndex((current) => (current - 1 + chatAutocomplete.suggestions.length) % chatAutocomplete.suggestions.length);
+                      return;
+                    }
+                    if (event.key === "Escape") {
+                      setIsChatAutocompleteOpen(false);
+                      return;
+                    }
+	                    if (event.key === "Tab" || (event.key === "Enter" && !event.shiftKey)) {
+	                      const selected = chatAutocomplete.suggestions[clamp(chatAutocompleteIndex, 0, chatAutocomplete.suggestions.length - 1)];
+	                      if (!selected) return;
+	                      event.preventDefault();
+	                      applyChatAutocomplete(selected, event.currentTarget.value, event.currentTarget.selectionStart ?? event.currentTarget.value.length);
+	                    }
+	                  }}
+                  onClick={(event) => {
+                    setChatCursorIndex(event.currentTarget.selectionStart ?? 0);
+                    setIsChatAutocompleteOpen(true);
+                  }}
+                  onKeyUp={(event) => {
+                    setChatCursorIndex(event.currentTarget.selectionStart ?? 0);
+                  }}
+	                  onFocus={() => {
+	                    if (!allowChatFocusRef.current) {
+	                      chatInputRef.current?.blur();
+	                      return;
+	                    }
+	                    allowChatFocusRef.current = false;
+	                    setIsChatFocused(true);
+	                    setIsChatAutocompleteOpen(true);
+	                  }}
+	                  onBlur={() => {
+	                    setIsChatFocused(false);
+	                    setIsChatAutocompleteOpen(false);
+	                  }}
+                  onMouseDown={(event) => {
+                    if (!isChatFocused) {
+                      event.preventDefault();
+                      event.stopPropagation();
+                    }
+                  }}
+                  maxLength={180}
+                  placeholder="Enter로 입력 활성화, Enter로 전송"
+                  className="h-12 w-full rounded-2xl border border-white/15 bg-black/15 px-4 text-sm text-white outline-none placeholder:text-white/35 focus:border-emerald-200/50"
+                />
+                {isChatAutocompleteOpen && chatAutocomplete.open ? (
+                  <div className="chat-autocomplete-panel absolute bottom-[52px] left-0 right-0 z-[80] overflow-hidden rounded-2xl border border-white/12 bg-black/70 p-1 backdrop-blur">
+                    {chatAutocomplete.suggestions.map((name, index) => (
+                      <button
+	                        key={name}
+	                        type="button"
+	                        onMouseDown={(event) => event.preventDefault()}
+	                        onClick={() => applyChatAutocomplete(name)}
+                        className={`chat-autocomplete-item flex w-full items-center justify-between rounded-xl px-3 py-2 text-left text-sm transition ${
+                          index === clamp(chatAutocompleteIndex, 0, chatAutocomplete.suggestions.length - 1)
+                            ? "bg-white/10 text-white"
+                            : "text-white/85 hover:bg-white/8 hover:text-white"
+                        }`}
+                      >
+                        <span className="truncate font-semibold">{name}</span>
+                        <span className="ml-3 shrink-0 text-xs text-white/40">{chatAutocomplete.isBracketQuery ? "[ ]" : "이름"}</span>
+                      </button>
+                    ))}
+                  </div>
+                ) : null}
+              </div>
               <button type="submit" className="inline-flex h-12 items-center gap-2 rounded-2xl bg-[#8f452f] px-4 font-medium text-white transition hover:bg-[#7c3d2a]">
                 전송
               </button>
@@ -3429,15 +3965,42 @@ function movePlayerState(state, dx, dy, options = {}) {
   if (changedRoom) {
     nextPlayer.joinedRoomAt = { ...player.joinedRoomAt, [nextPlayer.currentRoom]: Date.now() };
   }
-  return {
+
+  let nextState = {
     ...state,
     players: state.players.map((item) => (item.id === player.id ? nextPlayer : item)),
     walkTarget: options.keepWalkTarget ? state.walkTarget : null,
     modalCardId: changedRoom ? null : state.modalCardId,
     tableActionCardId: changedRoom ? null : state.tableActionCardId,
     pendingAction: changedRoom ? null : state.pendingAction,
-    logs: changedRoom ? addLog(state.logs, buildRoomNotice(state, player.name, nextPlayer.currentRoom)) : state.logs,
+    logs: state.logs,
   };
+
+  if (changedRoom) {
+    const timestamp = Date.now();
+    const feedMoveSelf = { id: `f-${crypto.randomUUID()}`, kind: "move", actorId: player.id, roomId: nextPlayer.currentRoom, text: buildSelfMoveNotice(nextState, nextPlayer.currentRoom), timestamp };
+    const feedMoveGm = { id: `f-${crypto.randomUUID()}`, kind: "move", actorId: player.id, roomId: nextPlayer.currentRoom, text: buildMoveNotice(nextState, player.name, nextPlayer.currentRoom), timestamp };
+    nextState = appendFeedItemFor(nextState, [player.id], feedMoveSelf);
+    nextState = appendFeedItemFor(nextState, gmPlayerIds(nextState), feedMoveGm);
+
+    const leaveText = buildLeaveNotice(nextState, player.name, player.currentRoom);
+    const leaveFeed = { id: `f-${crypto.randomUUID()}`, kind: "leave", actorId: player.id, roomId: player.currentRoom, text: leaveText, timestamp };
+    const leaveObservers = [
+      ...nonGmPlayersInRoom(nextState, player.currentRoom).map((p) => p.id).filter((id) => id !== player.id),
+      ...gmPlayerIds(nextState),
+    ];
+    nextState = appendFeedItemFor(nextState, leaveObservers, leaveFeed);
+
+    const enterText = buildEnterNotice(nextState, player.name, nextPlayer.currentRoom);
+    const enterFeed = { id: `f-${crypto.randomUUID()}`, kind: "enter", actorId: player.id, roomId: nextPlayer.currentRoom, text: enterText, timestamp };
+    const enterObservers = [
+      ...nonGmPlayersInRoom(nextState, nextPlayer.currentRoom).map((p) => p.id).filter((id) => id !== player.id),
+      ...gmPlayerIds(nextState),
+    ];
+    nextState = appendFeedItemFor(nextState, enterObservers, enterFeed);
+  }
+
+  return nextState;
 }
 
 function movePlayerTowardTargetState(state) {
@@ -3463,12 +4026,38 @@ function movePlayerTowardTargetState(state) {
     };
     const changedRoom = nextPlayer.currentRoom !== player.currentRoom;
     if (changedRoom) nextPlayer.joinedRoomAt = { ...player.joinedRoomAt, [nextPlayer.currentRoom]: Date.now() };
-    return {
+    let nextState = {
       ...state,
       players: state.players.map((item) => (item.id === player.id ? nextPlayer : item)),
       walkTarget: null,
-      logs: changedRoom ? addLog(state.logs, buildRoomNotice(state, player.name, nextPlayer.currentRoom)) : state.logs,
+      logs: state.logs,
     };
+
+	    if (changedRoom) {
+	      const timestamp = Date.now();
+	      const feedMoveSelf = { id: `f-${crypto.randomUUID()}`, kind: "move", actorId: player.id, roomId: nextPlayer.currentRoom, text: buildSelfMoveNotice(nextState, nextPlayer.currentRoom), timestamp };
+	      const feedMoveGm = { id: `f-${crypto.randomUUID()}`, kind: "move", actorId: player.id, roomId: nextPlayer.currentRoom, text: buildMoveNotice(nextState, player.name, nextPlayer.currentRoom), timestamp };
+	      nextState = appendFeedItemFor(nextState, [player.id], feedMoveSelf);
+	      nextState = appendFeedItemFor(nextState, gmPlayerIds(nextState), feedMoveGm);
+
+	      const leaveText = buildLeaveNotice(nextState, player.name, player.currentRoom);
+	      const leaveFeed = { id: `f-${crypto.randomUUID()}`, kind: "leave", actorId: player.id, roomId: player.currentRoom, text: leaveText, timestamp };
+	      const leaveObservers = [
+	        ...nonGmPlayersInRoom(nextState, player.currentRoom).map((p) => p.id).filter((id) => id !== player.id),
+	        ...gmPlayerIds(nextState),
+	      ];
+	      nextState = appendFeedItemFor(nextState, leaveObservers, leaveFeed);
+
+	      const enterText = buildEnterNotice(nextState, player.name, nextPlayer.currentRoom);
+	      const enterFeed = { id: `f-${crypto.randomUUID()}`, kind: "enter", actorId: player.id, roomId: nextPlayer.currentRoom, text: enterText, timestamp };
+	      const enterObservers = [
+	        ...nonGmPlayersInRoom(nextState, nextPlayer.currentRoom).map((p) => p.id).filter((id) => id !== player.id),
+	        ...gmPlayerIds(nextState),
+	      ];
+	      nextState = appendFeedItemFor(nextState, enterObservers, enterFeed);
+	    }
+
+    return nextState;
   }
   const ratio = PLAYER_STEP / distance;
   return movePlayerState(state, Math.round(dx * ratio), Math.round(dy * ratio), { keepWalkTarget: true });
@@ -3502,15 +4091,39 @@ function movePlayerToRoomState(state, roomId) {
     currentRoom: roomId,
     joinedRoomAt: { ...player.joinedRoomAt, [roomId]: Date.now() },
   };
-  return {
+  let nextState = {
     ...state,
     players: state.players.map((item) => (item.id === player.id ? nextPlayer : item)),
     walkTarget: null,
     modalCardId: null,
     tableActionCardId: null,
     pendingAction: null,
-    logs: addLog(state.logs, buildRoomNotice(state, player.name, roomId)),
+    logs: state.logs,
   };
+
+  const timestamp = Date.now();
+  const feedMoveSelf = { id: `f-${crypto.randomUUID()}`, kind: "move", actorId: player.id, roomId, text: buildSelfMoveNotice(nextState, roomId), timestamp };
+  const feedMoveGm = { id: `f-${crypto.randomUUID()}`, kind: "move", actorId: player.id, roomId, text: buildMoveNotice(nextState, player.name, roomId), timestamp };
+  nextState = appendFeedItemFor(nextState, [player.id], feedMoveSelf);
+  nextState = appendFeedItemFor(nextState, gmPlayerIds(nextState), feedMoveGm);
+
+  const leaveText = buildLeaveNotice(nextState, player.name, player.currentRoom);
+  const leaveFeed = { id: `f-${crypto.randomUUID()}`, kind: "leave", actorId: player.id, roomId: player.currentRoom, text: leaveText, timestamp };
+  const leaveObservers = [
+    ...nonGmPlayersInRoom(nextState, player.currentRoom).map((p) => p.id).filter((id) => id !== player.id),
+    ...gmPlayerIds(nextState),
+  ];
+  nextState = appendFeedItemFor(nextState, leaveObservers, leaveFeed);
+
+  const enterText = buildEnterNotice(nextState, player.name, roomId);
+  const enterFeed = { id: `f-${crypto.randomUUID()}`, kind: "enter", actorId: player.id, roomId, text: enterText, timestamp };
+  const enterObservers = [
+    ...nonGmPlayersInRoom(nextState, roomId).map((p) => p.id).filter((id) => id !== player.id),
+    ...gmPlayerIds(nextState),
+  ];
+  nextState = appendFeedItemFor(nextState, enterObservers, enterFeed);
+
+  return nextState;
 }
 
 function movePlayerByDrag(state, playerId, clientX, clientY, stageRect) {
@@ -3527,8 +4140,7 @@ function movePlayerByDrag(state, playerId, clientX, clientY, stageRect) {
   const nextY = clamp(Math.round(rawY), bounds.top, bounds.bottom);
   const nextRoom = detectRoom(state.rooms, nextX, nextY);
   const changedRoom = nextRoom !== targetPlayer.currentRoom;
-
-  return {
+  let nextState = {
     ...state,
     players: state.players.map((player) => {
       if (player.id !== playerId) return player;
@@ -3540,7 +4152,34 @@ function movePlayerByDrag(state, playerId, clientX, clientY, stageRect) {
         joinedRoomAt: changedRoom ? { ...player.joinedRoomAt, [nextRoom]: Date.now() } : player.joinedRoomAt,
       };
     }),
+    logs: state.logs,
   };
+
+  if (changedRoom) {
+    const timestamp = Date.now();
+    const feedMoveSelf = { id: `f-${crypto.randomUUID()}`, kind: "move", actorId: targetPlayer.id, roomId: nextRoom, text: buildSelfMoveNotice(nextState, nextRoom), timestamp };
+    const feedMoveGm = { id: `f-${crypto.randomUUID()}`, kind: "move", actorId: targetPlayer.id, roomId: nextRoom, text: buildMoveNotice(nextState, targetPlayer.name, nextRoom), timestamp };
+    nextState = appendFeedItemFor(nextState, [targetPlayer.id], feedMoveSelf);
+    nextState = appendFeedItemFor(nextState, gmPlayerIds(nextState), feedMoveGm);
+
+    const leaveText = buildLeaveNotice(nextState, targetPlayer.name, targetPlayer.currentRoom);
+    const leaveFeed = { id: `f-${crypto.randomUUID()}`, kind: "leave", actorId: targetPlayer.id, roomId: targetPlayer.currentRoom, text: leaveText, timestamp };
+    const leaveObservers = [
+      ...nonGmPlayersInRoom(nextState, targetPlayer.currentRoom).map((p) => p.id).filter((id) => id !== targetPlayer.id),
+      ...gmPlayerIds(nextState),
+    ];
+    nextState = appendFeedItemFor(nextState, leaveObservers, leaveFeed);
+
+    const enterText = buildEnterNotice(nextState, targetPlayer.name, nextRoom);
+    const enterFeed = { id: `f-${crypto.randomUUID()}`, kind: "enter", actorId: targetPlayer.id, roomId: nextRoom, text: enterText, timestamp };
+    const enterObservers = [
+      ...nonGmPlayersInRoom(nextState, nextRoom).map((p) => p.id).filter((id) => id !== targetPlayer.id),
+      ...gmPlayerIds(nextState),
+    ];
+    nextState = appendFeedItemFor(nextState, enterObservers, enterFeed);
+  }
+
+  return nextState;
 }
 
 function getActivePlayer(state) {
@@ -3567,8 +4206,51 @@ function getFacingFromVector(dx, dy) {
   return dy >= 0 ? "down" : "up";
 }
 
-function addLog(logs, text) {
-  return [...logs, { id: `l-${crypto.randomUUID()}`, text, timestamp: Date.now() }];
+function addLog(logs, text, roomId = "lobby") {
+  return [...logs, { id: `l-${crypto.randomUUID()}`, roomId, text, timestamp: Date.now() }];
+}
+
+function addFeedItem(feeds, playerId, item) {
+  const existing = feeds[playerId];
+  const next = Array.isArray(existing) ? [...existing, item] : [item];
+  return { ...feeds, [playerId]: next };
+}
+
+function appendFeedItemFor(state, playerIds, item) {
+  return playerIds.reduce((nextState, id) => ({ ...nextState, feeds: addFeedItem(nextState.feeds ?? {}, id, item) }), state);
+}
+
+function gmPlayerIds(state) {
+  return (state.players ?? []).filter((player) => player.role === "GM").map((player) => player.id);
+}
+
+function nonGmPlayersInRoom(state, roomId) {
+  return (state.players ?? []).filter((player) => player.role !== "GM" && player.currentRoom === roomId);
+}
+
+function buildEnterNotice(state, playerName, roomId) {
+  const particle = subjectParticle(playerName);
+  if (roomId === "lobby") return `[입장] ${playerName}${particle} 로비로 들어왔습니다.`;
+  const roomName = getRoomName(state.rooms, roomId);
+  return `[입장] ${playerName}${particle} ${roomName}에 들어왔습니다.`;
+}
+
+function buildLeaveNotice(state, playerName, roomId) {
+  const particle = subjectParticle(playerName);
+  if (roomId === "lobby") return `[퇴장] ${playerName}${particle} 로비를 떠났습니다.`;
+  const roomName = getRoomName(state.rooms, roomId);
+  return `[퇴장] ${playerName}${particle} ${roomName}를 떠났습니다.`;
+}
+
+function buildMoveNotice(state, playerName, roomId) {
+  const particle = subjectParticle(playerName);
+  const roomName = getRoomName(state.rooms, roomId);
+  return `[이동] ${playerName}${particle} ${roomName}로 이동했습니다.`;
+}
+
+function buildSelfMoveNotice(state, roomId) {
+  const roomName = getRoomName(state.rooms, roomId);
+  return `[이동] ${roomName}로 이동했습니다.`;
 }
 
 function hasFinalConsonant(koreanText) {
@@ -3589,6 +4271,13 @@ function buildRoomNotice(state, playerName, roomId) {
   if (roomId === "lobby") return `${playerName}${particle} 로비로 돌아왔습니다.`;
   const roomName = getRoomName(state.rooms, roomId);
   return `${playerName}${particle} ${roomName} 밀담에 합류했습니다.`;
+}
+
+function buildRoomLeaveNotice(state, playerName, roomId) {
+  const particle = subjectParticle(playerName);
+  if (roomId === "lobby") return `${playerName}${particle} 로비를 떠났습니다.`;
+  const roomName = getRoomName(state.rooms, roomId);
+  return `${playerName}${particle} ${roomName} 밀담에서 나갔습니다.`;
 }
 
 function getJumpOffset(player, now) {
