@@ -18,6 +18,7 @@ import mummySpaceTemplate from "../assets/mummy-space-template.jpg";
 import defaultBgm from "../assets/audio/default-bgm.wav";
 
 const STORAGE_KEY = "multiverse-boardgame-react-state-v1";
+const GAME_DATA_KEY = "multiverse-boardgame-react-gamedata-v1";
 const STAGE_WIDTH = 1920;
 const STAGE_HEIGHT = 1080;
 const STAGE_ASPECT_RATIO = STAGE_WIDTH / STAGE_HEIGHT;
@@ -85,62 +86,180 @@ const defaultAppearanceByPlayer = {
 
 const characterProfiles = {
   p1: {
-    characterName: "하린 에버모어",
-    tagline: "의심을 미소로 감추는 기록 담당자",
-    bio: "사건의 단서를 빠르게 엮어내는 조사관. 부드러운 태도로 사람들의 경계를 허물지만, 마음속에는 누구보다 치열한 질문이 쌓여 있다.",
-    storybook: `어린 시절부터 하린은 누군가의 말보다 기록의 온도를 더 믿었다. 낡은 수첩 한 권만 있으면 하루 종일 타인의 표정과 숨소리를 메모했고, 언제나 가장 늦게 결론을 내렸다.
+    characterName: "문목사",
+    tagline: "열린 교회의 담임 목사",
+    bio: "개척자. 성직자의 가면 뒤에 욕망과 공포를 숨기고 있다.",
+    storybook: `좋은 인상의 남성. 열린 교회의 담임 목사다.
 
-성인이 된 뒤에는 각종 탐문과 인터뷰를 맡으며 수많은 사건의 주변부를 걸었다. 정답을 먼저 주장하기보다, 모순을 오래 바라보는 쪽을 택했다. 그래서 동료들은 하린을 느리다고 말했지만 정작 마지막 조각을 붙이는 사람은 늘 하린이었다.
+이곳 ‘열린 교회’는 내가 세웠다. 처음 개척할 때만 해도 나는 낮이나 밤이나 예배당을 열어둔 채 성전을 지켰다. 홀로 눈물 흘리며 기도하러 방문하는 사람들의 등을 쓸어내리며, 나와 ‘송장로’는 참으로 순수하게 기도하고 성도들을 사랑했다. 헌신적인 송장로의 활약은 눈부셨다. 궂은일을 도맡아 하던 그녀의 직분은 점차 확장되었고, 어느새 그녀는 우리 교회를 지탱하는 단단한 기둥이 되어 있었다.
+늘 열려있는 예배당 덕에 우리 교회는 꽤 유명해졌다. 호기심에 방문하는 낯선 새신자들은 물론이고, 얼굴이 알려져 큰 교회를 가기 부담스러워하는 정계, 법조계, 연예계 사람들도 야심한 시각에 부담 없이 찾아오곤 했다.
+하지만 교회가 커지고 헌금이 무섭게 쌓이면서, 나는 더 큰 성전과 더 높은 자리를 갈망하게 되었다. 겉으로는 고귀한 성자처럼 보이려 애썼지만, 내 속은 이미 세속의 욕망으로 곪아있었다. 예전엔 처음 방문한 새신자의 이름을 한 명 한 명 외우며 기도했지만, 이제 스쳐 지나가는 사람들의 얼굴은 잘 기억조차 나지 않는다. 최근 우리 교회에 앙심을 품고 이상한 취재를 하겠다며 들락날락하다가 내게 출입 금지 처분을 받은 '박기자'라는 작자 정도만 겨우 기억날 뿐이다. 내가 성도들에게 무관심해져도 교회가 잘 돌아갔던 건, 사람을 싹싹하게 잘 챙기는 송장로가 든든하게 버티고 있었기 때문이다.
+그런데 최근, 한 통의 익명 이메일 제보가 내 삶을 뒤흔들었다. 내가 그토록 신뢰하며 교회 재정을 통째로 맡겼던 송장로가, 내 뒤에서 엄청난 규모의 교회 자금을 빼돌리고 있다는 충격적인 내용이었다. 내 피땀으로 세운 교회의 돈을! 오늘 밤, 나는 교역자실에 홀로 남아 재정 기록을 샅샅이 뒤졌고, 결국 그 더러운 진실을 두 눈으로 확인하고야 말았다.
+분노를 참지 못한 나는 당장 송장로에게 전화를 걸었다. 뚜르르- 신호음이 가는데, 이상하게도 고요한 대예배실 쪽에서 희미한 진동 소리가 울려 퍼졌다. 아무리 밤낮없이 교회에서 봉사를 하고 기도하는 그녀라지만, 이 야심한 새벽에 예배당에 있다고?
+나는 씩씩거리며 칠흑같이 어두운 예배당으로 향했다. 십자가의 붉은 불빛 아래, 의자에 기대어 앉아있는 실루엣. 분명한 송장로였다. 이성을 잃은 나는 다짜고짜 그녀에게 달려들어 주먹을 휘둘렀다. "네가 감히 내 돈을!" 퍽, 퍽. 내 거친 주먹이 그녀의 얼굴을 무자비하게 짓이기고 있었다. 힘없이 흔들리던 그녀가 툭, 하고 바닥으로 고꾸라졌다. 가쁜 숨을 몰아쉬며 그녀를 내려다보았다. 끈적한 선홍색 피가 그녀의 얼굴을 타고 흘러내리고 있었다. 아무리 강인하게 교회 일을 도맡아 하던 그녀였지만, 건장한 남성인 나와의 체급 차이는 어쩔 수 없었을 것이다. 그녀는 숨을 쉬지 않았다.
+'내가... 사람을 죽였나?'
+머리가 하얗게 질렸다. 공포에 질린 내 머릿속엔 오직 바닥에 끌린 흔적이나 핏자국을 지우고 시신을 은닉해야겠다는 생각뿐이었다. 나는 황급히 교역자실로 달려가 청소 도구와 운반할 거리를 챙겼다. 교역자실 문이 예배당 교단 앞쪽과 바로 연결되어 있다는 사실이 천만다행이었다. 숨을 고르고, 다시 예배당 문을 열었다.
+그 순간, 예배당의 불이 환하게 켜졌다.
+"저 사람이 사람을 죽였어요!"
+누군가의 외침. 눈부신 조명 아래, 어찌 된 영문인지 낯선 이들이 가득했다. 죽은 송장로 앞에는 안경을 쓴 낯선 남자 ‘이판사’가 당황한 채 서 있었고, 그를 가리키며 소리치는 자는 며칠 전 내가 내쫓았던 박기자였다. 구석에는 웬 ‘노숙자’까지 헝클어진 모습으로 일어나고 있었다.
+큰일이다. 이 중 누군가 내가 송장로를 패 죽이는 걸 봤나? 아니, 잠깐. 상황을 보니 이건 오히려 기회다. 박기자는 내가 아니라 이판사를 범인으로 지목하고 있다. 어떻게든 저 남자에게 죄를 덮어씌워야 한다. 최악의 경우, 내 주머니에 있는 ‘교회 뒷문 열쇠’를 이용해 교역자실 뒷문을 통해 도망칠 수도 있다. 하지만 평생을 바쳐 일궈놓은 내 거대한 사업터를 이렇게 허무하게 잃을 순 없다.
+일단은, 가장 자애롭고 고귀한 성직자의 가면을 쓰고 저들을 철저히 속여야만 한다.
 
-이번 저택 세션에서 하린은 모두의 진술을 모아 진실의 흐름을 재구성하려 한다. 겉으로는 침착하지만, 이미 오래전부터 이 가문과 닿아 있었던 개인적인 기억을 숨기고 있다.`,
+[ 당신의 죄 : 송장로를 폭행해 죽였다 ]
+살인 용의자가 되어 죄에 대한 처벌을 받는다 : 0점
+교회를 버리고 도망 다닌다 : 2점 (*단, [교회 뒷문 열쇠] 최종 소유 시)
+죄를 처벌받지 않고 교회 목사로 잘 지낸다 : 5점`,
   },
   p2: {
-    characterName: "민준 헤일",
-    tagline: "책장 뒤 먼지에서 비밀을 찾는 서재 담당",
-    bio: "서재에 남은 자잘한 흔적을 집요하게 파고드는 탐문가. 말수가 적지만, 발견한 정보는 결정적인 순간에 꺼내 놓는다.",
-    storybook: "",
+    characterName: "이판사",
+    tagline: "정의의 저울을 쥔 법관",
+    bio: "법복 아래 감춰진 비리와 생존 본능. 살인 누명을 벗고 살아남아야 한다.",
+    storybook: `안경 쓴 남성. 정의의 저울을 쥔 법관이다.
+나는 판사다. 세상 사람들은 나를 법과 정의를 수호하는 강직한 판사라 칭송하지만, 법복 아래 감춰진 내 진짜 모습은 다르다. 내가 이 은밀하고 더러운 세계에 발을 들인 건 20년 전, 술에 취한 선배 부장판사의 한마디 때문이었다.
+"이보게 이 판사, 법으로 안 되는 일을 해결해 줄 '보이지 않는 손'이 필요하면 그곳을 찾아가 보게. [열린 교회]의 송장로라고... 아주 확실한 사람이 있지."
+그렇게 만난 송장로는 입이 무겁고 철두철미한 최고의 사업 파트너였다. 우리는 아무도 의심하지 않는 이 예배당에서 지난 20년간 수많은 재력가와 정치인들의 재판을 조작해주며 뒷돈을 챙겨왔다. 수법은 늘 같았다. 인적 없는 심야 시간, 나는 홀로 조용히 기도하는 신자인 척 예배당에 앉아 있고, 송장로는 내 옆에 다가와 헌금 봉투로 위장한 돈을 두고 사라졌다. 어둠은 우리의 가장 완벽한 공범이었고, 그 비밀은 단 한 번도 새어나간 적이 없었다.
+하지만 이번엔 상황이 꼬였다. 최근 내가 맡은 사건이 언론의 엄청난 집중 포화를 받으면서, 국민적 여론이 들끓기 시작한 것이다. 도저히 송장로의 의뢰대로 판결을 덮어줄 수 없는 상황이었다. 결국 나는 내 안위를 위해 원칙대로 판결을 내릴 수밖에 없었고, 의뢰인에게 신뢰를 잃은 송장로는 짐승처럼 분노했다.
+"이 판사, 당신 미쳤어? 받은 돈에 위약금까지 얹어서 당장 환불해 놔요. 안 그러면 당신이랑 나눈 대화들, 전부 세상에 뿌릴 줄 알아!"
+협박에 가까운 텔레그램 메시지. 나는 20년간 쌓아온 내 명예를 지키기 위해 어쩔 수 없이 거액의 현금을 챙겨 이 새벽, 예배당으로 향했다. 칠흑 같이 어두운 대예배실. 늘 앉아있던 그 자리, 십자가의 희미한 붉은 불빛 아래 송장로의 실루엣이 보였다.
+"가져왔습니다. 이제 그만하시죠."
+짜증 섞인 목소리로 다가가 시신 옆에 돈 봉투를 내려놓는 순간, 발끝에 끈적한 액체가 닿았다. 비릿한 냄새. 피였다. 자세히 보니 송장로는 피투성이가 된 채 널브러져 있었다. 죽은 것이다. 심장이 덜컹 내려앉았다. 그 철두철미한 브로커가 대체 누구에게, 왜? 머릿속이 하얘지며 당황해 시신을 살피던 그때, 갑자기 예배당 전체에 눈이 멀 듯 환한 조명이 켜졌다.
+"사... 사람이 죽었어!! 저기 살인자가 있다!!"
+고개를 돌려보니, 예전 내가 횡령범으로 엮어 유죄 판결을 내리고 쫓아냈던 전직 기자 놈(박기자)이 나를 손가락질하며 악을 쓰고 있었다. 이어서 교단 앞 문이 열리며 청소 도구를 든 목사가 파랗게 질린 표정으로 서 있었고, 구석에는 더러운 노숙자 하나가 놀란 눈으로 이쪽을 보고 있었다.
+함정이다. 누군가 나를 완벽하게 옭아매려 작정했다. 이대로 경찰이 오면 살인죄를 뒤집어쓰는 것은 물론이고, 내 모든 비리와 명예까지 산산조각이 난다. 나는 분명 악질 판사일지는 몰라도, 살인자는 아니다!
+하지만 여기 있는 그 누구도 내 결백을 믿어주지 않을 것이다. 그렇다면 방법은 하나뿐이다. 내 품에는 내 서명 하나면 누구든 무죄로 만들어 줄 수 있는 무소불위의 권력, **[사법거래 각서]**가 있다. 어차피 내가 살아야 이 사법거래 각서도 쓸모가 있으니, 이 권력이 필요한 자라면 반드시 내 편이 되어줄 것이다. 이걸 미끼로 저 목사나 노숙자를 완벽하게 내 편으로 포섭해야 한다. 살기 위해서는 수단과 방법을 가려선 안 된다. 내가 살아야 법도 있는 것이다.
+
+[당신의 죄 : 송장로를 통해 사법 거래 비리를 저질렀다]
+살인 용의자로 지목되어 모든 비리가 까발려지고 구속된다 : 0점
+살인 누명은 벗었으나 사법 비리가 발각되어 모든 것을 잃는다 : 2점
+살인 누명을 벗고 다수결을 장악해 완벽하게 생존한다 : 5점`,
   },
   p3: {
-    characterName: "서윤 벨",
-    tagline: "정확의 흐름을 읽는 감정 추적자",
-    bio: "식탁 위의 사소한 어긋남에서 관계의 균열을 읽어내는 인물. 분위기를 읽는 데 능하고, 사람들의 거짓말에 특히 예민하다.",
-    storybook: "",
+    characterName: "박기자",
+    tagline: "진실을 좇던 기자",
+    bio: "추락한 기자. 복수를 위해 증거를 모으다 살인을 저질렀다.",
+    storybook: `집요한 인상의 여성. 진실을 좇던 기자다.
+나는 한때 정의를 좇는 기자였다. 소속 언론사의 추악한 내부 비리를 고발했을 때, 나는 세상이 내 편을 들어줄 줄 알았다. 하지만 그 오만한 '이판사'가 내린 편파적인 판결 하나가 내 인생을 처참하게 박살 냈다. 그들은 오히려 나를 회사 자금을 빼돌린 횡령범으로 둔갑시켰고, 나는 언론계에서 영원히 퇴출당했다.
+나는 이판사를 무너뜨리기 위해 미친 듯이 놈의 뒤를 캤다. 그리고 마침내, 놈이 누군가에게 두툼한 헌금 봉투를 건네는 밀회 현장을 포착했다. 이판사는 이 [열린 교회]의 '송장로'라는 여자를 브로커 삼아 불법적인 사법 거래를 해왔던 것이다. 회사와 짜고 나를 횡령범으로 만든 것 역시 이판사와 송장로의 짓이었다.
+하지만 고작 사진 몇 장으로 고발해 봤자, 이 거대한 카르텔 윗선에서 꼬리 자르기로 끝날 게 뻔했다. 나는 결심했다. 모을 수 있는 모든 증거를 긁어모아, 누구도 반박할 수 없는 완벽한 고발 다큐멘터리를 만들어 세상에 뿌려버리겠다고.
+나는 가짜 성경 앱 QR코드를 이용해 브로커 송장로의 휴대폰을 해킹했고, 그들의 모든 텔레그램 대화를 실시간으로 훔쳐보았다.
+그들의 더러운 대화 속에서, 나는 이판사가 현재 덮으려 하는 재판의 핵심 증거를 포착했다. 나는 이 증거를 다른 언론사들에 익명으로 제보했고, 세상은 발칵 뒤집혔다. 여론의 매서운 눈치를 보던 이판사는 결국 송장로와 약속한 판결을 내리지 못했다.
+이 일로 송장로는 크게 곤란해졌다. 사법 거래를 의뢰한 클라이언트에게 어마어마한 위약금을 물어주게 된 것이다. 신뢰 유지가 생명이라나 뭐라나. 송장로는 이판사에게 위약금을 당장 물어내라며 협박했고, 오늘 새벽 인적 없는 예배당으로 놈을 불러냈다.
+한편, 조사를 하던 중 나는 송장로가 이 교회의 헌금도 엄청나게 횡령하고 있다는 사실을 알아냈다. 그러던 중 눈치 없는 문목사가 나를 불량한 사람 취급하며 교회에서 내쫓았고, 나는 그 멍청한 목사에게 자비로운 선물을 하나 주기로 했다. 바로 오늘 밤, 송장로의 횡령 사실을 폭로하는 익명의 메일을 문목사에게 보낸 것이다.
+그리고 오늘 새벽. 이판사와 송장로의 거래 현장을 다큐멘터리에 담기 위해, 나는 일찍부터 예배당에 숨어들었다. 나이트비전 카메라를 세팅하고 어둠 속에서 숨죽여 기다렸다.
+그런데, 칠흑 같은 어둠 속에서 송장로가 내 기척을 눈치채고 말았다.
+"누구야!"
+다가오는 그녀와 거친 몸싸움이 벌어졌다. 이대로 내 복수극을 망칠 수 없다는 본능, 그리고 내 인생을 망친 일당을 향한 분노가 한꺼번에 폭발했다. 극도로 흥분한 나는 손에 들고 있던 무거운 카메라로 그녀의 뒷머리를 힘껏 내리쳤다.
+'퍽!'
+소름 끼치는 둔탁한 소리와 함께 검은 플라스틱 파편이 사방으로 튀었고, 송장로는 바닥으로 고꾸라져 즉사하고 말았다.
+손이 덜덜 떨렸다. 놈들의 비리를 폭로하려다가, 내가 살인자가 되어버리다니.
+바로 그때, 예배당 문이 덜컹 열렸다. 나는 황급히 어둠 속 구석으로 몸을 숨겼다. 들어온 사람은 뜻밖에도 아까 내가 메일을 보냈던 문목사였다. 그는 씩씩거리며 걸어오더니, 이미 숨이 끊어진 송장로를 발견하고는 분노를 이기지 못해 시신을 마구잡이로 패기 시작했다.
+나는 숨죽인 채 카메라를 들어 그 장면을 고스란히 녹화했다. 아까 내리친 충격으로 메모리 카드가 고장 나 화면이 자꾸 끊겼지만, 이 영상은 내 목숨줄이다.
+'저 미친 목사가... 자기가 사람을 죽인 줄 아는 건가?'
+목사가 시체를 치우려는 듯 허둥지둥 밖으로 나간 사이, 드디어 이판사가 예배당에 들어왔다. 놈이 헌금 봉투를 송장로의 시신 옆에 내려놓다가 그녀가 죽은 것을 발견하고 그 자리에 얼어붙은 순간, 나는 확신했다. 신이 내게 완벽한 복수의 기회를 주었다는 것을.
+나는 예배당 정문 쪽으로 걸어가 조명 스위치를 단번에 올리고, 문을 철컥 잠그며 있는 힘껏 소리쳤다. 구석에서 자고 있던 웬 더러운 노숙자 하나가 소스라치게 놀라 깨어났다. 모두의 시선이 나를 향했다.
+"사... 사람이 죽었어!! 저기 살인자가 있다!!"
+
+[당신의 죄 : 카메라로 송장로를 내리쳐 살해했다]
+살인 용의자가 되어 범행이 발각되고 처벌을 받는다 : 0점
+진범인 것은 들키지 않았으나 복수(이판사 구속)에 실패한다 : 2점
+이판사에게 완벽한 누명을 씌워 구속시키고 복수를 완성한다 : 5점`,
   },
   p4: {
-    characterName: "도윤 클라크",
-    tagline: "정원의 흙과 발자국을 기억하는 관찰자",
-    bio: "현장의 물리적 흔적을 먼저 보는 플레이어. 조용히 움직이지만, 한 번 의심한 흔적은 끝까지 추적한다.",
-    storybook: "",
-  },
-  p5: {
-    characterName: "GM 아델",
-    tagline: "장면과 규칙을 관리하는 진행자",
-    bio: "세션 전체의 흐름을 조율하는 게임 마스터. 플레이어에게는 최소한의 정보만 공개하지만, 사건의 구조와 비밀은 모두 알고 있다.",
-    storybook: `아델은 사건의 모든 장면을 설계한 진행자다. 등장인물들의 과거, 감춰진 알리바이, 방마다 숨어 있는 연결점까지 이미 머릿속에 완성된 지도를 가지고 있다.
+    characterName: "노숙자",
+    tagline: "갈 곳 없는 도망자",
+    bio: "과거 범죄를 숨긴 채 사건에 휘말렸다. 열쇠/면죄부를 찾아야 한다.",
+    storybook: `수염난 지저분한 남성. 갈 곳 없는 부랑자다.
+추웠다. 뼛속까지 시린 바람이 불었다. 나는 아주 먼 외딴섬, '흑월도'에서 바다를 건너 이 낯선 도시까지 도망쳐 왔다. 보름 전, 내 눈길을 끄는 한 여성이 있었다. 이름도 모르는 그녀였지만, 나는 흥미를 느끼고 그녀의 일거수일투족을 몰래 지켜보며 관찰 일기까지 써왔다. 그러다 결국 그 삐뚤어진 집착을 참지 못하고 그녀에게 씻을 수 없는 짓(강간 및 폭행)을 저지르고 말았다. 수배망이 좁혀오자 나는 그 섬을 벗어나 기나긴 도주를 시작했다.
+경찰의 눈을 피해 상가 복도와 빈 건물의 잠긴 문들을 수없이 흔들어보았지만, 어디에서도 몸을 누일 온기를 찾을 수 없었다. 주머니 속의 핫팩마저 차갑게 식어버려 절망하고 있을 때, 저 멀리 십자가 불빛이 보였다.
+요즘 세상에 문이 열려 있는 교회라니. 조심스럽게 밀어본 대예배실 문은 정말 열려 있었고, 내부는 놀랍도록 따뜻했다. 이 야심한 새벽에 누가 오겠는가. 나 같은 죄인도 잠시 쉴 곳은 필요하다. 나는 안도하며 구석진 의자 밑에 몸을 웅크렸고, 살기 위해 얕은 잠에 빠져들었다.
+얼마나 지났을까. 기묘하고도 지독한 악몽이 시작되었다. 꿈속에서 나는 거룩하고도 두려운 천사의 목소리를 듣게 되었다.
+*"가련한 도망자여. 네 지은 죄의 무게를 피해 달아나려거든, **[열쇠]*를 품으라. 허나 기억하라. 죄를 등진 도주가 비록 달콤할지라도, 그것은 영원히 안식을 잃고 떠돌아야 할 더 무거운 형벌이 될지니."
+*"네 죄를 마주할 줌의 용기조차 없는 타락한 영혼이여. 차라리 천사에게 엎드려 **[면죄부]*를 구하라. 천사의 날개가 온전히 하늘에 붙어 있는 한, 네 더러운 죄는 눈 녹듯 사함 받을 것이다. 허나 명심하라. 그 용서는, 타락한 천사가 다른 인간을 잔인하게 짓밟고 피를 빼앗아 쥐여주는 기만적인 용서이니라."
+그 웅장한 목소리가 끝남과 동시에, 현실인지 꿈인지 모를 생생한 소리들이 귓가를 때렸다. 누군가 단단한 것으로 머리를 내리치는 듯한 '퉁!' 하는 둔탁한 소리. 이어서 무언가 바닥에 부딪혀 산산조각 나는 '빠직!' 하는 소리였다. 그리고 나는 꿈속에서, 그 타락한 천사에게 숨을 쉴 수 없을 만큼 얼굴을 흠씬 두들겨 맞는 끔찍한 고통에 시달렸다.
+번쩍! 누군가의 비명과 함께 눈이 멀 듯한 조명이 켜졌다. "여... 여기가 천국인가? 심판의 천사들인가...?" 나는 꿈에서 덜 깬 채로 멍하니 중얼거리며 몸을 일으켰다. 하지만 눈을 비비고 초점을 맞춘 순간, 천국은 산산조각 났다.
+예배당 한가운데, 피투성이가 된 여자의 시체가 널브러져 있었다. 그리고 내 앞에는 당황한 기색의 양복 입은 남자, 교단 앞의 목사, 스위치를 잡고 있는 또 다른 사람이 대치하고 있었다.
+"사... 사람이 죽었어!! 저기 살인자가 있다!!"
+스위치를 잡은 남자가 소리쳤다. 그제야 어안이 벙벙하던 내 머릿속에 차가운 현실이 내리꽂혔다. 살인사건이다. 미치고 환장할 노릇이다. 왜 하필 내가 몸을 숨긴 곳에서, 내가 잠든 사이에 이런 끔찍한 일이 벌어진 거란 말인가! 내가 대체 왜 이런 일에 휘말려야 한단 말인가!
+분명 누군가 경찰을 부를 것이다. 이대로 사건에 휘말려 경찰에게 신원이 조회되면 끝장이다. 이 살인사건의 범인으로 몰리는 건 둘째치고, 내가 보름 전 흑월도에서 저지른 강간 수배범이라는 사실이 들통나면 평생 감옥에서 썩어야 한다. 심지어 저들은 만만한 나 같은 놈에게 이 살인죄까지 뒤집어씌우려 들지도 모른다.
+어떻게든 살아서 이곳을 빠져나가야 한다. 내 낡은 가방 속에는 그 여자를 미행했던 스토킹 일지와 칼이 들어있다. 이게 들통나면 꼼짝없이 범인으로 몰린다. 그때, 꿈속에서 들었던 목소리가 머리를 스쳤다. **'열쇠'**와 '면죄부'. 그게 진짜 열쇠 모양인지, 종이 쪼가리인지, 아니면 어떤 상징인지 나는 도무지 알 길이 없다. 하지만 살길은 그것뿐이다. 이 예배당 안에 있는 저 사람들 중 누군가가 분명 나를 구원해 줄 그 '열쇠'나 '면죄부'를 가지고 있을 것이다. 무슨 짓을 해서라도 그것을 찾아내야 한다. 나는 아무것도 모르는, 그저 재수 없게 휘말린 불쌍한 노숙자 행세를 해야 한다.
 
-플레이어가 보는 것은 사건의 표면뿐이지만, GM의 시점에서는 각 장면이 서로 어떤 타이밍으로 반응해야 하는지가 중요하다. 누군가 예상보다 빨리 진실에 다가가면 장면의 긴장을 조율하고, 흐름이 늘어지면 새로운 정보가 등장할 타이밍을 조정한다.
-
-아델의 스토리북은 사건의 원안, NPC의 감정선, 엔딩 분기, 그리고 각 단서가 공개될 때의 연출 노트를 포함한다. 외부 플레이어에게는 보이지 않지만 세션 전체를 부드럽게 움직이게 하는 내부 설계도이기도 하다.`,
+[당신의 죄 : 15일 전 흑월도에서, 강간 및 폭행을 저질렀다]
+살인 용의자로 지목되거나, 과거 범죄가 발각되어 구속된다 : 0점
+누군가에게 [열쇠]를 얻어내 다시 도망자 신세로 살아남는다 : 2점
+누군가에게 [면죄부]를 얻어내 과거의 죄를 완전히 사면받는다 : 5점`,
   },
 };
 
 const sharedRulebook = {
-  title: "공용 룰북",
-  body: `1. 플레이어는 현재 조작 중인 인물 시점으로 방을 이동하고, 그 방에 입장한 이후의 대화만 열람할 수 있습니다.
-2. 로비에서는 테이블 위 단서를 드래그하거나 손패로 가져올 수 있습니다.
-3. 드래그해서 필드에 내려놓는 카드는 항상 덮인 상태로 배치됩니다.
-4. 손패에서 [전체공개]를 누르면 카드를 펼친 상태로 즉시 테이블에 공개합니다.
-5. 방 안 대화는 같은 방에 있는 플레이어끼리만 공유됩니다.
-6. 이름, 캐릭터, 프로필 이미지를 클릭하면 해당 인물의 프로필을 열람할 수 있습니다.`,
+  title: "열린 교회 닫힌 문",
+  body: `| OPENING
+문목사
+“ 교회는 죄인이 오는 곳입니다. 여러분 모두에게 열려 있습니다. ”
+
+개척자 문목사가 세운 이곳 [열린 교회]는 그 이름처럼 24시간 대예배실의 문을 닫지 않습니다. 평일 늦은 밤부터 새벽까지, 이곳은 관리하는 이조차 없이 텅 비어 있는 날이 허다합니다. 지치고 방황하는 영혼들이 언제든 찾아와 무릎 꿇고 기도할 수 있도록, 늘 짙은 어둠 속에 오직 희미한 십자가 하나만이 붉게 켜져 있을 뿐입니다.
+하지만 오늘 밤, 이 고요한 안식은 끔찍한 비명과 함께 깨졌습니다. 모두의 존경을 한 몸에 받던 교회의 기둥, 송장로가 예배당 한복판에서 차가운 송장으로 발견된 것입니다. 경찰이 도착하기 전, 굳게 잠긴 예배당 문 안에서— 절대적인 신의 음성이 여러분의 귓가를 울립니다.
+
+“너희는 들으라.
+재물을 탐하고, 정욕에 눈멀며, 네 형제를 치고, 원수를 살해함은 죄로되,
+
+내가 진실로 진실로 너희에게 이르노니
+
+'네 허물을 덮지 말라.' '공의를 저버리지 말라.'
+'형벌에서 도망치지 말라.' '죄를 네 형제에게 전가하지 말라.'
+
+죄는 사함받을 수 있으나 죄를 외면하는 것은 가증한 일이니라.
+(정죄록 1장 1-3절)”
+
+예배당의 모든 조명이 일제히 환하게 켜졌습니다. 눈부신 조명 아래, 송장로의 시신을 둘러싼 네 사람의 모습이 드러납니다. 예배당 가운데 의자에 사망한 [송장로]가 쓰러져있고, 머리맡에는 정죄록 말씀이 펼쳐져 있습니다.
+송장로 바로 옆에는 당황한 기색을 감추지 못한 채 [이판사]가 서 있습니다. 교단 맨 앞쪽 교역자실 문앞에는 청소 도구를 챙겨 든 [문목사]의 손이 파르르 떨리고 있습니다. 예배당 구석, 헝클어진 모습으로 몸을 일으킨 [노숙자]는 황급히 출구를 바라봅니다. 그리고 맨 뒤쪽 예배당 정문 앞, 조명 스위치를 올린 [박기자]가 시신 옆에 선 이판사를 가리켜 외칩니다.
+
+박기자
+“ 사… 사람이 죽었어 !! 저기 살인자가 있다 ! ”
+
+박기자가 예배당 정문을 굳게 잠갔습니다. 이제 누구도 이 문을 나갈 수 없습니다. 신은 말했습니다. 죄를 지은 것보다 가증한 것은 그 죄를 부인하는 것이라고. 여러분은 이제 서로의 치부를 들춰내고, 누군가를 심판대에 세워야 합니다. 그것이 진실이든, 거짓이든 말입니다.
+
+| RULE
+게임의 규칙입니다.
+
+[기억]
+스토리북에는 당신의 기억이 적혀 있습니다. 스토리북의 내용을 타인에게 직접 보여주는 행위는 금지되며, 오직 대화로만 정보를 전달해야 합니다. 내용을 그대로 읽지 말고 본인의 기억을 되짚어 말하듯 자연스럽게 증언해 주십시오.
+
+[거짓말]
+자신의 손익에 따라 자유롭게 거짓말을 할 수 있습니다. 하지만 증거에 의해 거짓이 밝혀질 경우 범인으로 몰릴 강력한 빌미가 되며, 무리한 거짓말은 게임 진행에 어려움을 초래할 수 있으니 신중해야 합니다.
+
+[소지품]
+플레이어는 개인 소지품을 각각 4개씩 소유합니다. 총 16개의 소지품 중 승리 조건에 직접적인 영향을 미치는 아이템 2개가 존재합니다. 이 아이템의 최종 소유 여부가 승패를 결정지을 수 있습니다. 본인이 소유한 소지품 카드 내용은 절대 상대에게 직접 보여줘서는 안 됩니다.
+
+총 4번의 라운드를 진행합니다.
+한 라운드는 “5분의 밀담 - 10분의 전체 토론”으로 구성되어 있습니다.
+
+[ 밀담 ]
+매 라운드 2명씩 나누어 5분간 짧은 1:1 밀담을 진행합니다. 교회 출석일 순으로, 1라운드는 문목사가, 2라운드는 이판사가, 3라운드는 박기자가, 4라운드는 노숙자가 밀담할 상대를 먼저 지목합니다. 지목 받지 못한 사람들은 자동으로 서로의 밀담 상대가 됩니다. 네번의 라운드 동안 모든 사람과 최소 한 번씩은 파트너가 되어야 합니다.
+
+[ 밀담 中 소지품 교환 ]
+밀담이 끝나면 상대의 소지품 카드 뒷면만 본 채로 1개의 소지품을 선택해 가져옵니다. 획득한 소지품의 내용을 반드시 밀담이 아닌 예배당(로비)에서 확인해야합니다.
+
+[ 전체 토론 ]
+밀담과 소지품 교환이 끝나면 예배당(로비)에 모두 모여 10분간 자유롭게 공개 토론을 진행합니다.
+
+[ 전체 토론 中 신의 음성 공개 ]
+공개 토론에 앞서, 새로운 신의 음성이 제공됩니다. 신의 음성은 아이템에 대한 추가 정보입니다.
+
+[ 전체 토론 中 단서 조사 ]
+10분의 토론 시간 동안 인당 1장의 단서를 조사해야 하며, 조사한 단서는 반드시 전체 공개됩니다. 단서 내용은 직접 조사한 것처럼 설명해 주십시오.
+
+[ 전체 토론 中 소지품 소유권 포기 ]
+예배당 공개토론 중에는 언제든 소지품의 소유권을 포기하고 전체 공개할 수 있습니다. 소유권을 포기한 카드는 교환이 불가능하며 승리 조건에 영향을 미치지 못합니다. 단, 최소 1장의 카드는 보유해야 합니다.
+
+[ 최종 지목 ]
+모든 라운드가 종료되면 살인자라고 생각하는 사람을 지목합니다.`,
 };
 
 const gmRulebook = {
-  title: "GM 전용 룰북",
-  body: `1. GM은 사건의 정답, 비공개 연출 메모, 엔딩 분기를 관리합니다.
-2. 플레이어가 특정 단서를 너무 빨리 확보할 경우, 장면 묘사와 NPC 반응으로 긴장을 조정합니다.
-3. 스토리북과 GM 전용 룰북은 GM 자신만 열람할 수 있습니다.
-4. 타이머는 조사 페이즈, 토론 페이즈, 엔딩 브리핑 등 각 장면의 박자를 조절하는 용도로 사용합니다.
-5. 필요하면 플레이어의 이동과 카드 공개 타이밍을 로그로 확인해 장면 진행을 판정합니다.`,
+  title: "GM 메모",
+  body: `- 이 시나리오는 “기억(스토리북) + 소지품 교환 + 단서 공개 + 최종 지목”으로 긴장을 끌어올립니다.
+- 플레이어가 규칙을 어렵게 느끼면, “스토리북은 보여주지 말고 말로만” / “소지품은 뒷면만 보고 교환” / “단서는 반드시 공개” 3가지만 먼저 강조하세요.
+- 맵 배치(초기 리스폰)를 미리 잡아두면 진행이 매끄럽습니다.`,
 };
 
 const roomAccent = {
@@ -150,13 +269,168 @@ const roomAccent = {
   garden: "from-lime-900/75 via-emerald-950/60 to-slate-950/80",
 };
 
-const initialState = createInitialState();
+const initialState = loadState();
 const spriteSheetCache = new Map();
 let spriteSheetPromise = null;
 
-function createInitialState() {
+function makeId(prefix) {
+  try {
+    return `${prefix}_${crypto.randomUUID()}`;
+  } catch {
+    return `${prefix}_${Math.random().toString(16).slice(2)}_${Date.now()}`;
+  }
+}
+
+function loadGameData() {
+  const saved = localStorage.getItem(GAME_DATA_KEY);
+  if (!saved) return normalizeGameData(createDefaultGameData());
+  try {
+    return normalizeGameData(JSON.parse(saved));
+  } catch {
+    return normalizeGameData(createDefaultGameData());
+  }
+}
+
+function saveGameData(gameData) {
+  localStorage.setItem(GAME_DATA_KEY, JSON.stringify(gameData));
+}
+
+function createDefaultGameData() {
+  const seed = createInitialStateFromSeed();
+  const nonGmCharacters = Object.entries(characterProfiles).map(([id, profile]) => ({
+    id,
+    name: profile.characterName ?? "캐릭터",
+    tagline: profile.tagline ?? "",
+    bio: profile.bio ?? "",
+    tags: [],
+    storybook: profile.storybook ?? "",
+  }));
+
+  const categories = Array.from(new Set((seed.cards ?? []).map((card) => String(card.type ?? "").trim()).filter(Boolean)));
+
+  const items = (seed.cards ?? []).map((card) => ({
+    id: card.id,
+    title: card.title ?? card.summary ?? "",
+    description: card.description ?? "",
+    category: card.type ?? "",
+    spawn: { x: card.x ?? 0, y: card.y ?? 0 },
+  }));
+
+  return {
+    version: 1,
+    meta: { id: "default", title: "열린 교회 닫힌 문" },
+    gmEnabled: true,
+    characters: nonGmCharacters,
+    books: {
+      sharedRulebook: { title: sharedRulebook.title, body: sharedRulebook.body },
+      gmRulebook: { title: gmRulebook.title, body: gmRulebook.body },
+    },
+    cards: {
+      categories: categories.length ? categories : ["단서"],
+      items,
+    },
+    map: {
+      mapSize: seed.mapSize,
+      movementBounds: seed.movementBounds,
+      rooms: seed.rooms,
+      spawns: {
+        players: Object.fromEntries(seed.players.map((player) => [player.id, { x: player.x, y: player.y, currentRoom: player.currentRoom }])),
+        cards: Object.fromEntries(seed.cards.map((card) => [card.id, { x: card.x, y: card.y }])),
+      },
+    },
+  };
+}
+
+function normalizeGameData(data) {
+  const fallback = createDefaultGameData();
+  if (!data || typeof data !== "object") return fallback;
+
+  const meta = data.meta && typeof data.meta === "object" ? data.meta : {};
+  const metaId = typeof meta.id === "string" && meta.id.trim() ? meta.id.trim() : fallback.meta.id;
+  const metaTitle = typeof meta.title === "string" && meta.title.trim() ? meta.title.trim() : fallback.meta.title;
+  const gmEnabled = "gmEnabled" in data ? Boolean(data.gmEnabled) : fallback.gmEnabled;
+
+  const characters = Array.isArray(data.characters) ? data.characters : [];
+  const normalizedCharacters = characters
+    .filter((item) => item && typeof item === "object" && typeof item.id === "string" && item.id.trim())
+    .map((item) => ({
+      id: item.id.trim(),
+      name: typeof item.name === "string" ? item.name : "캐릭터",
+      tagline: typeof item.tagline === "string" ? item.tagline : "",
+      bio: typeof item.bio === "string" ? item.bio : "",
+      tags: Array.isArray(item.tags) ? item.tags.map((tag) => String(tag ?? "").trim()).filter(Boolean) : [],
+      storybook: typeof item.storybook === "string" ? item.storybook : "",
+    }));
+
+  const books = data.books && typeof data.books === "object" ? data.books : {};
+  const sharedRulebookData = books.sharedRulebook && typeof books.sharedRulebook === "object" ? books.sharedRulebook : {};
+  const gmRulebookData = books.gmRulebook && typeof books.gmRulebook === "object" ? books.gmRulebook : {};
+
+  const cards = data.cards && typeof data.cards === "object" ? data.cards : {};
+  const categories = Array.isArray(cards.categories) ? cards.categories.map((c) => String(c ?? "").trim()).filter(Boolean) : [];
+  const items = Array.isArray(cards.items) ? cards.items : [];
+  const normalizedCards = items
+    .filter((item) => item && typeof item === "object" && typeof item.id === "string" && item.id.trim())
+    .map((item) => ({
+      id: item.id.trim(),
+      title: typeof item.title === "string" && item.title.trim().length ? item.title : (typeof item.summary === "string" ? item.summary : ""),
+      description: typeof item.description === "string" ? item.description : "",
+      category: typeof item.category === "string" ? item.category : "",
+      spawn: { x: typeof item.spawn?.x === "number" ? item.spawn.x : 0, y: typeof item.spawn?.y === "number" ? item.spawn.y : 0 },
+    }));
+
+  const map = data.map && typeof data.map === "object" ? data.map : {};
+  const mapSize = normalizeMapSize(map.mapSize);
+  const movementBounds = {
+    left: typeof map.movementBounds?.left === "number" ? map.movementBounds.left : TABLE_SAFE_LEFT,
+    top: typeof map.movementBounds?.top === "number" ? map.movementBounds.top : TABLE_SAFE_TOP,
+    right: typeof map.movementBounds?.right === "number" ? map.movementBounds.right : TABLE_SAFE_RIGHT,
+    bottom: typeof map.movementBounds?.bottom === "number" ? map.movementBounds.bottom : TABLE_SAFE_BOTTOM,
+  };
+  const rooms = Array.isArray(map.rooms) ? map.rooms : [];
+  const normalizedRooms = rooms
+    .filter((room) => room && typeof room === "object" && typeof room.id === "string" && room.id.trim())
+    .map((room) => ({
+      id: room.id,
+      name: typeof room.name === "string" ? room.name : "방",
+      x: typeof room.x === "number" ? room.x : 0,
+      y: typeof room.y === "number" ? room.y : 0,
+      width: typeof room.width === "number" ? room.width : 300,
+      height: typeof room.height === "number" ? room.height : 260,
+    }));
+
+  return {
+    version: 1,
+    meta: { id: metaId, title: metaTitle },
+    gmEnabled,
+    characters: normalizedCharacters.length ? normalizedCharacters : fallback.characters,
+    books: {
+      sharedRulebook: {
+        title: typeof sharedRulebookData.title === "string" ? sharedRulebookData.title : fallback.books.sharedRulebook.title,
+        body: typeof sharedRulebookData.body === "string" ? sharedRulebookData.body : fallback.books.sharedRulebook.body,
+      },
+      gmRulebook: {
+        title: typeof gmRulebookData.title === "string" ? gmRulebookData.title : fallback.books.gmRulebook.title,
+        body: typeof gmRulebookData.body === "string" ? gmRulebookData.body : fallback.books.gmRulebook.body,
+      },
+    },
+    cards: {
+      categories: categories.length ? categories : fallback.cards.categories,
+      items: normalizedCards.length ? normalizedCards : fallback.cards.items,
+    },
+    map: {
+      mapSize,
+      movementBounds,
+      rooms: normalizedRooms.length ? normalizedRooms : fallback.map.rooms,
+      spawns: map.spawns && typeof map.spawns === "object" ? map.spawns : fallback.map.spawns,
+    },
+  };
+}
+
+function createInitialStateFromSeed() {
   const sessionStart = Date.now();
   return {
+    gameData: null,
     activePlayerId: "p1",
     modalCardId: null,
     profileModalPlayerId: null,
@@ -183,35 +457,124 @@ function createInitialState() {
     lastDecisionOutcome: null,
     lastDecisionModalOpen: false,
     rooms: [
-      { id: "study", name: "서재", x: 400, y: 118, width: 382, height: 323 },
-      { id: "dining", name: "식당", x: 1315, y: 118, width: 374, height: 323 },
-      { id: "garden", name: "정원", x: 1315, y: 575, width: 374, height: 287 },
+      { id: "study", name: "교역자실", x: 400, y: 118, width: 382, height: 323 },
+      { id: "dining", name: "예배당 정문", x: 1315, y: 118, width: 374, height: 323 },
+      { id: "garden", name: "예배당 구석", x: 1315, y: 575, width: 374, height: 287 },
     ],
     players: [
-      { id: "p1", name: "하린 에버모어", role: "PL", appearance: { ...defaultAppearanceByPlayer.p1 }, facing: "down", stepCycle: 0, lastMovedAt: 0, jumpUntil: 0, x: 930, y: 520, currentRoom: "lobby", joinedRoomAt: { lobby: sessionStart } },
-      { id: "p2", name: "민준 헤일", role: "PL", appearance: { ...defaultAppearanceByPlayer.p2 }, facing: "down", stepCycle: 0, lastMovedAt: 0, jumpUntil: 0, x: 585, y: 258, currentRoom: "study", joinedRoomAt: { study: sessionStart } },
-      { id: "p3", name: "서윤 벨", role: "PL", appearance: { ...defaultAppearanceByPlayer.p3 }, facing: "down", stepCycle: 0, lastMovedAt: 0, jumpUntil: 0, x: 1492, y: 258, currentRoom: "dining", joinedRoomAt: { dining: sessionStart } },
-      { id: "p4", name: "도윤 클라크", role: "PL", appearance: { ...defaultAppearanceByPlayer.p4 }, facing: "down", stepCycle: 0, lastMovedAt: 0, jumpUntil: 0, x: 1508, y: 715, currentRoom: "garden", joinedRoomAt: { garden: sessionStart } },
-      { id: "p5", name: "GM 아델", role: "GM", appearance: { ...defaultAppearanceByPlayer.p5 }, facing: "down", stepCycle: 0, lastMovedAt: 0, jumpUntil: 0, x: 1120, y: 330, currentRoom: "lobby", joinedRoomAt: { lobby: sessionStart } },
+      { id: "p1", name: "문목사", role: "PL", appearance: { ...defaultAppearanceByPlayer.p1 }, facing: "down", stepCycle: 0, lastMovedAt: 0, jumpUntil: 0, x: 850, y: 520, currentRoom: "lobby", joinedRoomAt: { lobby: sessionStart } },
+      { id: "p2", name: "이판사", role: "PL", appearance: { ...defaultAppearanceByPlayer.p2 }, facing: "down", stepCycle: 0, lastMovedAt: 0, jumpUntil: 0, x: 980, y: 520, currentRoom: "lobby", joinedRoomAt: { lobby: sessionStart } },
+      { id: "p3", name: "박기자", role: "PL", appearance: { ...defaultAppearanceByPlayer.p3 }, facing: "down", stepCycle: 0, lastMovedAt: 0, jumpUntil: 0, x: 1110, y: 520, currentRoom: "lobby", joinedRoomAt: { lobby: sessionStart } },
+      { id: "p4", name: "노숙자", role: "PL", appearance: { ...defaultAppearanceByPlayer.p4 }, facing: "down", stepCycle: 0, lastMovedAt: 0, jumpUntil: 0, x: 1240, y: 520, currentRoom: "lobby", joinedRoomAt: { lobby: sessionStart } },
+      { id: "gm", name: "GM", role: "GM", appearance: { ...defaultAppearanceByPlayer.p5 }, facing: "down", stepCycle: 0, lastMovedAt: 0, jumpUntil: 0, x: 1020, y: 330, currentRoom: "lobby", joinedRoomAt: { lobby: sessionStart } },
     ],
     cards: [
-      { id: "c1", title: "단서 A", summary: "핏자국이 묻은 편지", description: "붉은 봉인 자국과 함께 짧은 메모가 남아 있다. 수신인은 '서재에서 밤 10시에 보자'라고 적혀 있다.", x: 760, y: 390, isFaceUp: false, handFaceUp: false, ownerId: null, type: "문서" },
-      { id: "c2", title: "단서 B", summary: "부러진 시계 조각", description: "깨진 회중시계의 초침이 10시 17분에서 멈춰 있다. 뒷면에는 'D' 이니셜이 새겨져 있다.", x: 930, y: 410, isFaceUp: false, handFaceUp: false, ownerId: null, type: "물증" },
-      { id: "c3", title: "단서 C", summary: "찢어진 영수증", description: "식당 와인 주문 기록 일부다. 사건 당일 예상보다 한 병 더 주문된 흔적이 남아 있다.", x: 1100, y: 395, isFaceUp: false, handFaceUp: false, ownerId: null, type: "기록" },
-      { id: "c4", title: "단서 D", summary: "정원 흙 묻은 장갑", description: "겉면에는 정원 흙이, 안쪽에는 은은한 향수가 남아 있다. 누군가 급하게 벗어 던진 흔적이다.", x: 1270, y: 425, isFaceUp: false, handFaceUp: false, ownerId: null, type: "소지품" },
-      { id: "c5", title: "단서 E", summary: "가계도 일부", description: "가문의 상속 순서를 표시한 문서다. 최근에 특정 이름이 지워지고 덧써진 흔적이 있다.", x: 1440, y: 400, isFaceUp: false, handFaceUp: false, ownerId: null, type: "비밀문서" },
+      { id: "c1", title: "정죄록 1장 1-3절", description: "“네 허물을 덮지 말라… 죄를 네 형제에게 전가하지 말라.” 사건 현장 머리맡에 펼쳐져 있었다.", x: 830, y: 380, isFaceUp: false, handFaceUp: false, ownerId: null, type: "시체 조사" },
+      { id: "c2", title: "헌금 봉투(현금)", description: "두툼한 봉투. 겉에는 ‘감사 헌금’이라 적혀 있으나, 안에는 현금 다발이 들어 있다.", x: 930, y: 380, isFaceUp: false, handFaceUp: false, ownerId: null, type: "이판사 조사" },
+      { id: "c3", title: "카메라 파편", description: "검은 플라스틱 파편. 둔탁한 타격 뒤에 튄 것처럼 보인다.", x: 1030, y: 380, isFaceUp: false, handFaceUp: false, ownerId: null, type: "박기자 조사" },
+      { id: "c4", title: "익명 이메일 출력본", description: "송장로의 횡령을 폭로하는 익명 메일. 수신자는 문목사.", x: 1130, y: 380, isFaceUp: false, handFaceUp: false, ownerId: null, type: "문목사 조사" },
+
+      { id: "c5", title: "교회 뒷문 열쇠", description: "교역자실 뒤편으로 통하는 문을 열 수 있는 열쇠. 탈출과 생존에 영향을 줄 수 있다.", x: 760, y: 470, isFaceUp: false, handFaceUp: false, ownerId: null, type: "문목사 조사" },
+      { id: "c6", title: "사법거래 각서", description: "서명 하나면 누군가를 무죄로 만들 수 있는 권력의 증표. 표를 사거나 협박하는 데 쓰일 수 있다.", x: 820, y: 470, isFaceUp: false, handFaceUp: false, ownerId: null, type: "이판사 조사" },
+      { id: "c7", title: "면죄부", description: "죄를 ‘사함받았다’는 상징적 문서. 누군가에게는 구원, 누군가에게는 거래의 미끼.", x: 880, y: 470, isFaceUp: false, handFaceUp: false, ownerId: null, type: "노숙자 조사" },
+      { id: "c8", title: "스토킹 일지", description: "관찰 일기. 타인의 행적을 기록한 노트로, 들키면 치명적이다.", x: 940, y: 470, isFaceUp: false, handFaceUp: false, ownerId: null, type: "노숙자 조사" },
+      { id: "c9", title: "칼", description: "낡았지만 날이 서 있다. 위협과 공포를 불러올 물건.", x: 1000, y: 470, isFaceUp: false, handFaceUp: false, ownerId: null, type: "노숙자 조사" },
+      { id: "c10", title: "고장 난 메모리 카드", description: "영상이 끊겨 저장되지만, 결정적 장면의 일부가 남아 있을지도 모른다.", x: 1060, y: 470, isFaceUp: false, handFaceUp: false, ownerId: null, type: "박기자 조사" },
+      { id: "c11", title: "나이트비전 카메라", description: "어둠 속 촬영 장비. 사건 전후의 움직임을 기록했을 가능성이 있다.", x: 1120, y: 470, isFaceUp: false, handFaceUp: false, ownerId: null, type: "박기자 조사" },
+      { id: "c12", title: "청소 도구(표백제)", description: "핏자국을 지우고 흔적을 없애는 데 쓸 수 있는 도구.", x: 1180, y: 470, isFaceUp: false, handFaceUp: false, ownerId: null, type: "문목사 조사" },
+      { id: "c13", title: "재정 장부", description: "헌금과 지출 내역. 횡령의 증거가 숨어 있을 수 있다.", x: 1240, y: 470, isFaceUp: false, handFaceUp: false, ownerId: null, type: "문목사 조사" },
+      { id: "c14", title: "출입 금지 통보서", description: "박기자에게 내려진 출입 금지. 교회가 숨기는 것이 있음을 시사한다.", x: 1300, y: 470, isFaceUp: false, handFaceUp: false, ownerId: null, type: "문목사 조사" },
+      { id: "c15", title: "텔레그램 대화 캡처", description: "송장로와 누군가의 거래 메시지. 폭로되면 모두가 무너진다.", x: 1360, y: 470, isFaceUp: false, handFaceUp: false, ownerId: null, type: "이판사 조사" },
+      { id: "c16", title: "위약금 청구서", description: "사법 거래 실패로 발생한 거액의 위약금. 누군가에게는 동기다.", x: 1420, y: 470, isFaceUp: false, handFaceUp: false, ownerId: null, type: "이판사 조사" },
+      { id: "c17", title: "가짜 성경 앱 QR코드", description: "휴대폰을 속여 접속시키는 코드. 해킹의 실마리.", x: 760, y: 540, isFaceUp: false, handFaceUp: false, ownerId: null, type: "박기자 조사" },
+      { id: "c18", title: "핫팩", description: "차가운 밤, 몸을 녹이던 흔한 물건. 하지만 ‘누가’ 있었다는 단서가 될 수 있다.", x: 820, y: 540, isFaceUp: false, handFaceUp: false, ownerId: null, type: "노숙자 조사" },
+      { id: "c19", title: "낡은 가방", description: "도망자의 가방. 안의 내용은 절대 들키면 안 된다.", x: 880, y: 540, isFaceUp: false, handFaceUp: false, ownerId: null, type: "노숙자 조사" },
+      { id: "c20", title: "헌금 봉투 사진", description: "거래 현장을 찍은 흔적. 진실과 협박 사이의 도구.", x: 940, y: 540, isFaceUp: false, handFaceUp: false, ownerId: null, type: "박기자 조사" },
+
+      { id: "c21", title: "신의 음성 1", description: "“형벌에서 도망치지 말라.” 아이템/도주에 대한 힌트가 숨겨져 있다.", x: 1030, y: 540, isFaceUp: false, handFaceUp: false, ownerId: null, type: "신의 음성" },
+      { id: "c22", title: "신의 음성 2", description: "“죄를 네 형제에게 전가하지 말라.” 누명과 전가에 대한 경고처럼 들린다.", x: 1130, y: 540, isFaceUp: false, handFaceUp: false, ownerId: null, type: "신의 음성" },
     ],
     cardAttention: {},
-    messages: [
-      { id: "m1", roomId: "lobby", senderId: "p1", text: "브리핑 전에 전원 로비로 모여 주세요.", timestamp: Date.now() - 1000 * 60 * 8 },
-      { id: "m2", roomId: "study", senderId: "p2", text: "서재 책장 뒤에 숨겨진 흔적이 있어.", timestamp: Date.now() - 1000 * 60 * 4 },
-      { id: "m3", roomId: "dining", senderId: "p3", text: "식당 영수증이 이상해. 누가 술을 더 시켰어.", timestamp: Date.now() - 1000 * 60 * 3 },
-    ],
+    messages: [],
     logs: [
-      { id: "l1", roomId: "lobby", text: "세션이 시작되었습니다. 넓은 로비와 세 개의 방에서 탐문이 진행 중입니다.", timestamp: Date.now() - 1000 * 60 * 10 },
+      { id: "l1", roomId: "lobby", text: "세션 시작: ‘열린 교회 닫힌 문’ — 예배당 문은 잠겼고, 네 사람은 서로를 심판해야 합니다.", timestamp: Date.now() - 1000 * 25 },
     ],
     feeds: {},
   };
+}
+
+function createInitialStateFromGameData(gameData) {
+  const sessionStart = Date.now();
+  const seed = createInitialStateFromSeed();
+  const safeGameData = normalizeGameData(gameData);
+  const characters = safeGameData.characters ?? [];
+
+  const players = characters.map((character, index) => {
+    const presetKey = ["p1", "p2", "p3", "p4", "p5"][index] ?? "p1";
+    const appearancePreset = defaultAppearanceByPlayer[presetKey] ?? defaultAppearanceByPlayer.p1;
+    const spawn = safeGameData.map?.spawns?.players?.[character.id];
+    const currentRoom = typeof spawn?.currentRoom === "string" ? spawn.currentRoom : "lobby";
+    return {
+      id: character.id,
+      name: character.name,
+      role: "PL",
+      appearance: { ...appearancePreset },
+      facing: "down",
+      stepCycle: 0,
+      lastMovedAt: 0,
+      jumpUntil: 0,
+      x: typeof spawn?.x === "number" ? spawn.x : 930,
+      y: typeof spawn?.y === "number" ? spawn.y : 520,
+      currentRoom,
+      joinedRoomAt: { [currentRoom]: sessionStart },
+    };
+  });
+
+  if (safeGameData.gmEnabled) {
+    const gmSpawn = safeGameData.map?.spawns?.players?.gm;
+    const gmRoom = typeof gmSpawn?.currentRoom === "string" ? gmSpawn.currentRoom : "lobby";
+    players.push({
+      id: "gm",
+      name: "GM",
+      role: "GM",
+      appearance: { ...(defaultAppearanceByPlayer.p5 ?? defaultAppearanceByPlayer.p1) },
+      facing: "down",
+      stepCycle: 0,
+      lastMovedAt: 0,
+      jumpUntil: 0,
+      x: typeof gmSpawn?.x === "number" ? gmSpawn.x : 1120,
+      y: typeof gmSpawn?.y === "number" ? gmSpawn.y : 330,
+      currentRoom: gmRoom,
+      joinedRoomAt: { [gmRoom]: sessionStart },
+    });
+  }
+
+  const cards = safeGameData.cards.items.map((card) => {
+    const spawn = safeGameData.map?.spawns?.cards?.[card.id];
+    return {
+      id: card.id,
+      title: card.title,
+      description: card.description,
+      x: typeof spawn?.x === "number" ? spawn.x : card.spawn.x,
+      y: typeof spawn?.y === "number" ? spawn.y : card.spawn.y,
+      isFaceUp: false,
+      handFaceUp: false,
+      ownerId: null,
+      type: card.category,
+    };
+  });
+
+  return normalizeState({
+    ...seed,
+    gameData: safeGameData,
+    activePlayerId: players[0]?.id ?? seed.activePlayerId,
+    players,
+    cards,
+    rooms: safeGameData.map.rooms,
+    mapSize: safeGameData.map.mapSize,
+    movementBounds: safeGameData.map.movementBounds,
+    feeds: Object.fromEntries(players.map((player) => [player.id, []])),
+  });
 }
 
 function normalizeAppearance(playerId, appearance) {
@@ -252,12 +615,17 @@ function normalizeMapSize(mapSize) {
 }
 
 function loadState() {
+  const gameData = loadGameData();
   const saved = localStorage.getItem(STORAGE_KEY);
-  if (!saved) return normalizeState(createInitialState());
+  if (!saved) return createInitialStateFromGameData(gameData);
   try {
-    return normalizeState({ ...createInitialState(), ...JSON.parse(saved) });
+    const parsed = JSON.parse(saved);
+    if (parsed?.gameDataId && parsed.gameDataId === gameData.meta.id && parsed?.state && typeof parsed.state === "object") {
+      return normalizeState({ ...createInitialStateFromGameData(gameData), ...parsed.state, gameData });
+    }
+    return createInitialStateFromGameData(gameData);
   } catch {
-    return normalizeState(createInitialState());
+    return createInitialStateFromGameData(gameData);
   }
 }
 
@@ -294,7 +662,7 @@ function normalizeState(state) {
     lastDecisionModalOpen: Boolean(state.lastDecisionModalOpen),
     players: state.players.map((player) => ({
       ...player,
-      name: characterProfiles[player.id]?.characterName ?? (typeof player.name === "string" ? player.name : "플레이어"),
+      name: typeof player.name === "string" ? player.name : "플레이어",
       role: player.role === "GM" ? "GM" : "PL",
       appearance: normalizeAppearance(player.id, player.appearance),
       facing: player.facing ?? "down",
@@ -318,11 +686,111 @@ function normalizeState(state) {
   return normalized;
 }
 
+function syncStateToGameData(currentState, gameData) {
+  const sessionStart = Date.now();
+  const existingById = Object.fromEntries((currentState.players ?? []).map((player) => [player.id, player]));
+  const nextPlayers = [];
+  const presetOrder = ["p1", "p2", "p3", "p4", "p5"];
+
+  (gameData.characters ?? []).forEach((character, index) => {
+    const existing = existingById[character.id];
+    if (existing && existing.role !== "GM") {
+      nextPlayers.push({ ...existing, id: character.id, name: character.name, role: "PL" });
+      return;
+    }
+    const presetKey = presetOrder[index] ?? "p1";
+    const appearancePreset = defaultAppearanceByPlayer[presetKey] ?? defaultAppearanceByPlayer.p1;
+    nextPlayers.push({
+      id: character.id,
+      name: character.name,
+      role: "PL",
+      appearance: { ...appearancePreset },
+      facing: "down",
+      stepCycle: 0,
+      lastMovedAt: 0,
+      jumpUntil: 0,
+      x: STAGE_WIDTH / 2,
+      y: STAGE_HEIGHT / 2,
+      currentRoom: "lobby",
+      joinedRoomAt: { lobby: sessionStart },
+    });
+  });
+
+  if (gameData.gmEnabled) {
+    const existing = existingById.gm;
+    if (existing && existing.role === "GM") {
+      nextPlayers.push({ ...existing, id: "gm", role: "GM", name: existing.name ?? "GM" });
+    } else {
+      nextPlayers.push({
+        id: "gm",
+        name: "GM",
+        role: "GM",
+        appearance: { ...(defaultAppearanceByPlayer.p5 ?? defaultAppearanceByPlayer.p1) },
+        facing: "down",
+        stepCycle: 0,
+        lastMovedAt: 0,
+        jumpUntil: 0,
+        x: STAGE_WIDTH / 2,
+        y: STAGE_HEIGHT / 2,
+        currentRoom: "lobby",
+        joinedRoomAt: { lobby: sessionStart },
+      });
+    }
+  }
+
+  const existingCardsById = Object.fromEntries((currentState.cards ?? []).map((card) => [card.id, card]));
+  const nextCards = (gameData.cards?.items ?? []).map((card) => {
+    const existing = existingCardsById[card.id];
+    if (existing) {
+      return {
+        ...existing,
+        id: card.id,
+        title: card.title,
+        description: card.description,
+        type: card.category,
+      };
+    }
+    return {
+      id: card.id,
+      title: card.title,
+      description: card.description,
+      x: card.spawn?.x ?? STAGE_WIDTH / 2,
+      y: card.spawn?.y ?? STAGE_HEIGHT / 2,
+      isFaceUp: false,
+      handFaceUp: false,
+      ownerId: null,
+      type: card.category,
+    };
+  });
+
+  const nextFeeds = { ...(currentState.feeds ?? {}) };
+  for (const player of nextPlayers) {
+    if (!nextFeeds[player.id] || !Array.isArray(nextFeeds[player.id])) nextFeeds[player.id] = [];
+  }
+
+  const nextActivePlayerId = nextPlayers.some((p) => p.id === currentState.activePlayerId)
+    ? currentState.activePlayerId
+    : (nextPlayers[0]?.id ?? currentState.activePlayerId);
+
+  return normalizeState({
+    ...currentState,
+    gameData,
+    players: nextPlayers,
+    cards: nextCards,
+    rooms: gameData.map?.rooms ?? currentState.rooms,
+    mapSize: gameData.map?.mapSize ?? currentState.mapSize,
+    movementBounds: gameData.map?.movementBounds ?? currentState.movementBounds,
+    feeds: nextFeeds,
+    activePlayerId: nextActivePlayerId,
+  });
+}
+
 function App() {
   const [state, setState] = useState(loadState);
   const [chatDraft, setChatDraft] = useState("");
   const [chatCursorIndex, setChatCursorIndex] = useState(0);
   const [chatAutocompleteIndex, setChatAutocompleteIndex] = useState(0);
+  const [chatAutocompleteUserSelected, setChatAutocompleteUserSelected] = useState(false);
   const [isChatAutocompleteOpen, setIsChatAutocompleteOpen] = useState(false);
   const [gmChatRoomId, setGmChatRoomId] = useState("lobby");
   const [gmTopNotice, setGmTopNotice] = useState(null);
@@ -345,6 +813,7 @@ function App() {
   const [playerDragSession, setPlayerDragSession] = useState(null);
   const [rightPanelOpen] = useState(false);
   const [mapEditMode, setMapEditMode] = useState(false);
+  const [uiMode, setUiMode] = useState("play");
   const [modalZoomFocus, setModalZoomFocus] = useState(null);
   const [now, setNow] = useState(Date.now());
   const [isTimerEditing, setIsTimerEditing] = useState(false);
@@ -365,23 +834,43 @@ function App() {
   const jumpHeldRef = useRef(false);
   const prevStopwatchStartedAtRef = useRef(null);
   const allowChatFocusRef = useRef(false);
+  const importInputRef = useRef(null);
+  const [editorTab, setEditorTab] = useState("characters");
+  const [selectedCharacterId, setSelectedCharacterId] = useState(null);
+  const [selectedCardId, setSelectedCardId] = useState(null);
+  const [categoryDraft, setCategoryDraft] = useState("");
+  const gameData = state.gameData ?? loadGameData();
+  const isEditorMode = uiMode === "edit";
   const activePlayer = getActivePlayer(state);
   const isCardAttentionActive = (cardId) => (state.cardAttention?.[cardId] ?? 0) > now;
   const effectiveChatRoomId = activePlayer.role === "GM" ? gmChatRoomId : activePlayer.currentRoom;
+  const characterById = useMemo(() => Object.fromEntries((gameData.characters ?? []).map((c) => [c.id, c])), [gameData.characters]);
   const characterNameOptions = useMemo(() => {
     const names = state.players
-      .map((player) => characterProfiles[player.id]?.characterName ?? player.name)
+      .filter((player) => player?.role !== "GM")
+      .map((player) => player.name)
       .filter((name) => typeof name === "string" && name.trim().length > 0)
       .map((name) => name.trim());
     return [...new Set(names)].sort((a, b) => b.length - a.length || a.localeCompare(b, "ko"));
   }, [state.players]);
+
+  useEffect(() => {
+    if (!selectedCharacterId) {
+      const firstId = gameData.characters?.[0]?.id ?? null;
+      if (firstId) setSelectedCharacterId(firstId);
+    }
+    if (!selectedCardId) {
+      const firstCardId = gameData.cards?.items?.[0]?.id ?? null;
+      if (firstCardId) setSelectedCardId(firstCardId);
+    }
+  }, [gameData.characters, gameData.cards, selectedCardId, selectedCharacterId]);
 
   const roomNameOptions = useMemo(() => {
     const names = state.rooms
       .map((room) => room?.name)
       .filter((name) => typeof name === "string" && name.trim().length > 0)
       .map((name) => name.trim());
-    return [...new Set(names)].sort((a, b) => b.length - a.length || a.localeCompare(b, "ko"));
+    return [...new Set([...names, "로비"])].sort((a, b) => b.length - a.length || a.localeCompare(b, "ko"));
   }, [state.rooms]);
 
   const chatAutocomplete = useMemo(() => {
@@ -499,6 +988,7 @@ function App() {
     setChatDraft(nextDraft);
     setChatCursorIndex(nextCursor);
     setChatAutocompleteIndex(0);
+    setChatAutocompleteUserSelected(false);
     setIsChatAutocompleteOpen(false);
     window.requestAnimationFrame(() => {
       const node = chatInputRef.current;
@@ -507,6 +997,21 @@ function App() {
       node.setSelectionRange(nextCursor, nextCursor);
     });
   }, [chatAutocomplete, chatDraft]);
+
+  const openProfile = useCallback((playerId) => {
+    setState((current) => ({ ...current, profileModalPlayerId: playerId, modalCardId: null, documentModalType: null, storybookModalPlayerId: null, storybookPageIndex: 0, pendingWalkTarget: null, tableActionCardId: null, pendingAction: null }));
+  }, []);
+
+  const getPlayerIdByDisplayName = useCallback((displayName) => {
+    const target = (displayName ?? "").trim();
+    if (!target) return null;
+    for (const player of state.players ?? []) {
+      if (player?.role === "GM") continue;
+      const candidate = (player.name ?? "").trim();
+      if (candidate && candidate === target) return player.id;
+    }
+    return null;
+  }, [state.players]);
 
   const renderChatLine = useCallback((text, keyPrefix = "seg") => {
     if (!text) return null;
@@ -549,16 +1054,36 @@ function App() {
       }
     }
 
-    return merged.map((segment, segmentIndex) => (
-      <span
-        key={`${keyPrefix}-${segmentIndex}`}
-        className={`chat-text-outline chat-text-outline-inline ${segment.highlight ? "chat-name-highlight" : ""}`}
-        data-text={segment.text}
-      >
-        {segment.text}
-      </span>
-    ));
-  }, [characterNameOptions]);
+    return merged.map((segment, segmentIndex) => {
+      const playerId = segment.highlight ? getPlayerIdByDisplayName(segment.text) : null;
+      const className = `chat-text-outline chat-text-outline-inline ${segment.highlight ? "chat-name-highlight" : ""}`;
+
+      if (playerId) {
+        return (
+          <button
+            key={`${keyPrefix}-${segmentIndex}`}
+            type="button"
+            className={`${className} bg-transparent p-0 text-inherit`}
+            data-text={segment.text}
+            title="프로필 보기"
+            onClick={() => openProfile(playerId)}
+          >
+            {segment.text}
+          </button>
+        );
+      }
+
+      return (
+        <span
+          key={`${keyPrefix}-${segmentIndex}`}
+          className={className}
+          data-text={segment.text}
+        >
+          {segment.text}
+        </span>
+      );
+    });
+  }, [characterNameOptions, getPlayerIdByDisplayName, openProfile]);
 
   const renderNoticeLine = useCallback((text, kind, keyPrefix = "notice") => {
     if (!text) return null;
@@ -618,9 +1143,9 @@ function App() {
           segment.type === "character" ? "notice-character-highlight" : "",
           segment.type === "room" ? "notice-room-highlight" : "",
         ].filter(Boolean).join(" ")}
-        data-text={segment.text}
+        data-text={segment.text.replace(/ /g, "\u00A0")}
       >
-        {segment.text}
+        {segment.text.replace(/ /g, "\u00A0")}
       </span>
     ));
   }, [characterNameOptions, roomNameOptions]);
@@ -646,7 +1171,21 @@ function App() {
   }, [feedForActivePlayer, state.players]);
   const tableCards = state.cards.filter((card) => card.ownerId === null);
   const activeHandCards = state.cards.filter((card) => card.ownerId === activePlayer.id);
-  const activeStorybookText = characterProfiles[activePlayer.id]?.storybook ?? "";
+  const cardSequenceById = useMemo(
+    () => Object.fromEntries((state.cards ?? []).map((card, index) => [card.id, index + 1])),
+    [state.cards],
+  );
+  const cardCategorySequenceById = useMemo(() => {
+    const counts = {};
+    const map = {};
+    (state.cards ?? []).forEach((card) => {
+      const category = String(card.type ?? "").trim() || "미분류";
+      counts[category] = (counts[category] ?? 0) + 1;
+      map[card.id] = counts[category];
+    });
+    return map;
+  }, [state.cards]);
+  const activeStorybookText = characterById[activePlayer.id]?.storybook ?? "";
   const otherHands = state.players.filter((player) => player.id !== activePlayer.id && player.role !== "GM");
   const modalCard = state.cards.find((card) => card.id === state.modalCardId) ?? null;
   const dragCard = dragCardId ? state.cards.find((card) => card.id === dragCardId) ?? null : null;
@@ -656,18 +1195,18 @@ function App() {
   const storybookPlayer = state.players.find((player) => player.id === state.storybookModalPlayerId) ?? null;
   const viewRoomId = activePlayer.role === "GM" ? effectiveChatRoomId : activePlayer.currentRoom;
   const activeRoomZone = state.rooms.find((room) => room.id === viewRoomId) ?? null;
-  const activePlayerProfile = characterProfiles[activePlayer.id] ?? null;
+  const activePlayerProfile = characterById[activePlayer.id] ?? null;
   const selectedRoom = state.rooms.find((room) => room.id === state.selectedRoomId) ?? state.rooms[0];
   const renderPlayers = state.players.filter((player) => player.role !== "GM");
-  const isMapEditing = activePlayer.role === "GM" && mapEditMode;
+  const isMapEditing = isEditorMode ? editorTab === "map" : (activePlayer.role === "GM" && mapEditMode);
   const stageWidth = state.mapSize.width;
   const stageHeight = state.mapSize.height;
   const chatRoomMembers = useMemo(() => {
     const roomIdForMembers = activePlayer.role === "GM" ? effectiveChatRoomId : activePlayer.currentRoom;
     return state.players
       .filter((player) => player.role !== "GM" && player.currentRoom === roomIdForMembers)
-      .map((player) => player.name)
-      .filter((name) => typeof name === "string" && name.trim().length > 0);
+      .map((player) => ({ id: player.id, name: player.name }))
+      .filter((player) => typeof player.name === "string" && player.name.trim().length > 0);
   }, [activePlayer.currentRoom, activePlayer.role, effectiveChatRoomId, state.players]);
   const elapsedTimerMs = state.stopwatchStartedAt ? state.stopwatchElapsedMs + (now - state.stopwatchStartedAt) : state.stopwatchElapsedMs;
   const effectiveTimeMs = Math.max(0, state.timerDurationSec * 1000 - elapsedTimerMs);
@@ -704,7 +1243,14 @@ function App() {
   }, [chatFeedItems, isChatFocused, now]);
 
   useEffect(() => {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+    const { gameData, ...persistable } = state;
+    localStorage.setItem(
+      STORAGE_KEY,
+      JSON.stringify({
+        gameDataId: gameData?.meta?.id ?? null,
+        state: persistable,
+      }),
+    );
   }, [state]);
 
   useEffect(() => {
@@ -1195,8 +1741,79 @@ function App() {
     };
   }, [playerDragSession]);
 
+  const setGameDataDraft = useCallback((updater, { sync = true } = {}) => {
+    setState((current) => {
+      const nextGameData = normalizeGameData(updater(current.gameData ?? gameData));
+      if (!sync) return { ...current, gameData: nextGameData };
+      return syncStateToGameData(current, nextGameData);
+    });
+  }, [gameData]);
+
+  const persistGameDataDraft = useCallback(() => {
+    setState((current) => {
+      const normalized = normalizeGameData(current.gameData ?? gameData);
+      saveGameData(normalized);
+      return { ...current, gameData: normalized };
+    });
+  }, [gameData]);
+
+  const buildGameDataWithCurrentMap = useCallback((baseGameData, currentState) => {
+    const players = Object.fromEntries(
+      (currentState.players ?? []).map((player) => [player.id, { x: player.x, y: player.y, currentRoom: player.currentRoom }]),
+    );
+    const cards = Object.fromEntries((currentState.cards ?? []).map((card) => [card.id, { x: card.x, y: card.y }]));
+    return normalizeGameData({
+      ...baseGameData,
+      map: {
+        ...baseGameData.map,
+        mapSize: currentState.mapSize,
+        movementBounds: currentState.movementBounds,
+        rooms: currentState.rooms,
+        spawns: { players, cards },
+      },
+    });
+  }, []);
+
+  const downloadGameData = useCallback(() => {
+    const payload = normalizeGameData(state.gameData ?? gameData);
+    const filenameBase = (payload.meta?.title ?? "custom-game").trim() || "custom-game";
+    const blob = new Blob([JSON.stringify(payload, null, 2)], { type: "application/json" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = `${filenameBase}.murdergame.json`;
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    URL.revokeObjectURL(url);
+  }, [gameData, state.gameData]);
+
+  const importGameDataFromFile = useCallback(async (file) => {
+    if (!file) return;
+    const text = await file.text();
+    const parsed = JSON.parse(text);
+    const normalized = normalizeGameData(parsed);
+    saveGameData(normalized);
+    localStorage.removeItem(STORAGE_KEY);
+    spriteSheetCache.clear();
+    setState(syncStateToGameData(createInitialStateFromGameData(normalized), normalized));
+  }, []);
+
+  const startPlayFromGameData = useCallback(() => {
+    let normalized = normalizeGameData(state.gameData ?? gameData);
+    if (isEditorMode && editorTab === "map") {
+      normalized = buildGameDataWithCurrentMap(normalized, state);
+    }
+    saveGameData(normalized);
+    localStorage.removeItem(STORAGE_KEY);
+    spriteSheetCache.clear();
+    setState(createInitialStateFromGameData(normalized));
+    setUiMode("play");
+    setIsChatFocused(false);
+  }, [buildGameDataWithCurrentMap, editorTab, gameData, isEditorMode, state]);
+
   const resetGame = () => {
-    const next = normalizeState(createInitialState());
+    const next = createInitialStateFromGameData(state.gameData ?? loadGameData());
     spriteSheetCache.clear();
     localStorage.removeItem(STORAGE_KEY);
     setState(next);
@@ -1280,10 +1897,6 @@ function App() {
         pendingAction: null,
       };
     });
-  };
-
-  const openProfile = (playerId) => {
-    setState((current) => ({ ...current, profileModalPlayerId: playerId, modalCardId: null, documentModalType: null, storybookModalPlayerId: null, storybookPageIndex: 0, pendingWalkTarget: null, tableActionCardId: null, pendingAction: null }));
   };
 
   const openDocument = (documentModalType) => {
@@ -1383,6 +1996,7 @@ function App() {
   };
 
   const movePlayerToPoint = (clientX, clientY) => {
+    if (isEditorMode) return;
     if (activePlayer.role === "GM") return;
     const stage = stageRef.current;
     if (!stage) return;
@@ -1855,15 +2469,16 @@ function App() {
               <CardTile
                 card={card}
                 visible={card.isFaceUp}
+                sequenceNumber={cardSequenceById[card.id]}
+                categorySequenceNumber={cardCategorySequenceById[card.id]}
                 actionLabel="카드 상세"
                 highlighted={contactCard?.id === card.id}
-                disabled={activePlayer.currentRoom !== "lobby" && !card.isFaceUp}
+                disabled={isEditorMode ? false : (activePlayer.currentRoom !== "lobby" && !card.isFaceUp)}
                 onClick={!isLens ? () => {
-                  if (card.isFaceUp || activePlayer.currentRoom === "lobby") {
-                    openCard(card.id);
-                  }
+                  if (isEditorMode) return openCard(card.id);
+                  if (card.isFaceUp || activePlayer.currentRoom === "lobby") openCard(card.id);
                 } : undefined}
-                draggable={!isLens && activePlayer.currentRoom === "lobby"}
+                draggable={!isLens && (isEditorMode || activePlayer.currentRoom === "lobby")}
                 onPointerDown={!isLens ? (event) => handleCardPointerDown(event, card.id) : undefined}
                 dragging={!isLens && dragCardId === card.id}
                 suppressClickRef={suppressClickRef}
@@ -1887,6 +2502,17 @@ function App() {
 	          </div>
 	        </div>
 	      ) : null}
+
+        {!isEditorMode ? (
+          <div className="pointer-events-none fixed bottom-5 left-5 z-[114]">
+            <div className="inline-flex flex-col gap-1 rounded-[14px] border border-white/10 bg-black/35 px-3 py-2 text-[11px] font-semibold text-white/75 shadow-[0_14px_34px_rgba(0,0,0,0.22)] backdrop-blur-sm">
+              <div><span className="font-extrabold text-white/85">WASD</span> 이동</div>
+              <div>클릭 이동</div>
+              <div><span className="font-extrabold text-white/85">Alt</span> 확대</div>
+              <div><span className="font-extrabold text-white/85">Enter</span> 채팅</div>
+            </div>
+          </div>
+        ) : null}
 	      <div
 	        className={`pointer-events-none fixed z-[120] -translate-x-1/2 -translate-y-1/2 rounded-full transition-[width,height,background-color,border-color,box-shadow,transform,opacity] duration-150 ${cursorState.visible ? "opacity-100" : "opacity-0"} ${cursorState.interactive ? "h-12 w-12 border border-amber-200/80 bg-amber-100/14 shadow-[0_0_0_6px_rgba(253,230,138,0.12)]" : "h-5 w-5 border border-white/75 bg-white/10 shadow-[0_0_0_2px_rgba(255,255,255,0.08)]"}`}
 	        style={{ left: cursorState.x, top: cursorState.y }}
@@ -1909,7 +2535,8 @@ function App() {
 
 	      <div
 	        ref={viewportRef}
-	        className="relative shrink-0 overflow-hidden"
+	        className="relative shrink-0 overflow-hidden outline-none"
+          tabIndex={-1}
 		        style={{ width: stageWidth * viewportScale, height: stageHeight * viewportScale }}
 		        onPointerDownCapture={(event) => {
 		          if (activePlayer.role !== "GM") return;
@@ -1988,6 +2615,8 @@ function App() {
             <CardTile
               card={dragCard}
               visible={dragCard.ownerId === null ? dragCard.isFaceUp : true}
+              sequenceNumber={cardSequenceById[dragCard.id]}
+              categorySequenceNumber={cardCategorySequenceById[dragCard.id]}
               hand={dragCard.ownerId === activePlayer.id}
               board={dragCard.ownerId === null}
               compact={dragCard.ownerId !== activePlayer.id && dragCard.ownerId !== null}
@@ -2002,6 +2631,8 @@ function App() {
             <CardTile
               card={hoveredHandCard}
               visible={Boolean(hoveredHandCard.handFaceUp)}
+              sequenceNumber={cardSequenceById[hoveredHandCard.id]}
+              categorySequenceNumber={cardCategorySequenceById[hoveredHandCard.id]}
               modal
             />
           </div>
@@ -2014,6 +2645,8 @@ function App() {
             <CardTile
               card={hoveredProfileCard}
               visible={false}
+              sequenceNumber={cardSequenceById[hoveredProfileCard.id]}
+              categorySequenceNumber={cardCategorySequenceById[hoveredProfileCard.id]}
               modal
             />
           </div>
@@ -2035,6 +2668,8 @@ function App() {
             <CardTile
               card={takeAnimation.card}
               visible={takeAnimation.card.ownerId === null ? takeAnimation.card.isFaceUp : true}
+              sequenceNumber={cardSequenceById[takeAnimation.card.id]}
+              categorySequenceNumber={cardCategorySequenceById[takeAnimation.card.id]}
               hand
             />
           </div>
@@ -2163,7 +2798,7 @@ function App() {
             </div>
             <div className="min-w-0 flex-1">
               <div className="flex items-baseline justify-between gap-3">
-                <div className="min-w-0 truncate text-[18px] font-semibold leading-tight text-stone-100">{activePlayerProfile?.characterName ?? activePlayer.name}</div>
+                <div className="min-w-0 truncate text-[18px] font-semibold leading-tight text-stone-100">{activePlayer.name}</div>
                 {lastDecisionOutcome && activePlayer.role !== "GM" ? (
                   <div className="shrink-0 text-[12px] font-semibold text-white/65">
                     ({formatLastDecisionBadge(lastDecisionOutcome, activePlayer.id, state.players)})
@@ -2179,7 +2814,7 @@ function App() {
                     onMouseEnter={() => setHoveredProfileCardId(card.id)}
                     onMouseLeave={() => setHoveredProfileCardId((current) => (current === card.id ? null : current))}
                   >
-                    <CardTile card={card} visible={false} compact micro />
+                    <CardTile card={card} visible={false} sequenceNumber={cardSequenceById[card.id]} categorySequenceNumber={cardCategorySequenceById[card.id]} compact micro />
                   </div>
                 )) : <span className="text-[12px] text-white/40">보유 카드 없음</span>}
               </div>
@@ -2217,7 +2852,7 @@ function App() {
                       </div>
                     ) : null}
                   </div>
-                  <p className="mt-0.5 text-[12px] text-amber-100/60">{player.role === "GM" ? "게임 마스터" : characterProfiles[player.id]?.tagline ?? ""}</p>
+                  <p className="mt-0.5 text-[12px] text-amber-100/60">{player.role === "GM" ? "게임 마스터" : characterById[player.id]?.tagline ?? ""}</p>
                   <div className="mt-2 flex items-center gap-2 overflow-x-auto pb-0.5">
                     {cards.length ? cards.map((card) => (
                       <div
@@ -2226,7 +2861,7 @@ function App() {
                         onMouseEnter={() => setHoveredProfileCardId(card.id)}
                         onMouseLeave={() => setHoveredProfileCardId((current) => (current === card.id ? null : current))}
                       >
-                        <CardTile card={card} visible={false} compact micro />
+                        <CardTile card={card} visible={false} sequenceNumber={cardSequenceById[card.id]} categorySequenceNumber={cardCategorySequenceById[card.id]} compact micro />
                       </div>
                     )) : <span className="text-[12px] text-white/40">보유 카드 없음</span>}
                   </div>
@@ -2401,7 +3036,25 @@ function App() {
             <div className="flex items-center gap-2">
               <select
                 value={state.activePlayerId}
-                onChange={(event) => setState((current) => ({ ...current, activePlayerId: event.target.value, modalCardId: null, profileModalPlayerId: null, documentModalType: null, tableActionCardId: null, pendingAction: null }))}
+                onChange={(event) => {
+                  const nextId = event.target.value;
+                  event.target.blur();
+                  pressedKeysRef.current.clear();
+                  jumpHeldRef.current = false;
+                  setIsChatFocused(false);
+                  setState((current) => ({
+                    ...current,
+                    activePlayerId: nextId,
+                    modalCardId: null,
+                    profileModalPlayerId: null,
+                    documentModalType: null,
+                    tableActionCardId: null,
+                    pendingAction: null,
+                    storybookModalPlayerId: null,
+                    storybookPageIndex: 0,
+                  }));
+                  window.requestAnimationFrame(() => viewportRef.current?.focus());
+                }}
                 className="h-10 flex-1 rounded-xl border border-white/12 bg-black/18 px-3 text-sm outline-none"
                 data-hoverable="true"
                 aria-label="조작 플레이어"
@@ -2424,22 +3077,37 @@ function App() {
             </div>
           </div>
 
-          {activePlayer.role === "GM" ? (
-            <button
-              type="button"
-              onClick={() => setMapEditMode((current) => !current)}
-              className={`inline-flex h-14 items-center rounded-[18px] border px-4 text-sm font-semibold text-white shadow-[0_18px_40px_rgba(0,0,0,0.2)] backdrop-blur-sm transition ${isMapEditing ? "border-amber-200/60 bg-[#8f452f]/96" : "border-white/10 bg-black/28 hover:bg-black/40"}`}
-              data-hoverable="true"
-            >
-              {isMapEditing ? "편집 종료" : "맵 편집"}
-            </button>
-          ) : null}
+          <button
+            type="button"
+            onClick={() => {
+              setUiMode((current) => (current === "edit" ? "play" : "edit"));
+              setIsChatFocused(false);
+              setState((current) => ({
+                ...current,
+                modalCardId: null,
+                profileModalPlayerId: null,
+                documentModalType: null,
+                tableActionCardId: null,
+                pendingAction: null,
+                storybookModalPlayerId: null,
+                storybookPageIndex: 0,
+                cards: current.cards.map((card) => ({ ...card, ownerId: null, isFaceUp: false, handFaceUp: false })),
+              }));
+            }}
+            className={`inline-flex h-14 items-center rounded-[18px] border px-4 text-sm font-semibold text-white shadow-[0_18px_40px_rgba(0,0,0,0.2)] backdrop-blur-sm transition ${isEditorMode ? "border-sky-200/65 bg-sky-950/80" : "border-white/10 bg-black/28 hover:bg-black/40"}`}
+            data-hoverable="true"
+          >
+            {isEditorMode ? "에디터 종료" : "커스텀 에디터"}
+          </button>
+
+          {/* GM 맵 편집 버튼 제거: 커스텀 에디터의 맵 배치 탭에서 편집 */}
 
           {/* 메뉴 버튼(임시 제거) */}
         </div>
 
+        {!isEditorMode ? (
         <aside
-          className={`pointer-events-none absolute bottom-[160px] left-[460px] right-[460px] z-[60] rounded-[24px] border p-5 text-white transition ${isChatFocused ? "border-emerald-200/55 bg-black/22 shadow-[0_0_0_2px_rgba(167,243,208,0.16),0_18px_40px_rgba(0,0,0,0.22)]" : "border-transparent bg-transparent"}`}
+          className={`${isChatFocused ? "pointer-events-auto" : "pointer-events-none"} absolute bottom-[160px] left-[460px] right-[460px] z-[60] rounded-[24px] border p-5 text-white transition ${isChatFocused ? "border-emerald-200/55 bg-black/22 shadow-[0_0_0_2px_rgba(167,243,208,0.16),0_18px_40px_rgba(0,0,0,0.22)]" : "border-transparent bg-transparent"}`}
           style={{ opacity: chatOpacity, transition: "opacity 520ms ease" }}
         >
           <div className="flex h-[min(58vh,640px)] min-h-[420px] flex-col">
@@ -2448,7 +3116,18 @@ function App() {
                 <div className="text-[22px] font-semibold leading-tight">{getRoomName(state.rooms, activePlayer.role === "GM" ? effectiveChatRoomId : activePlayer.currentRoom)}</div>
                 {chatRoomMembers.length ? (
                   <div className="text-[15px] font-semibold text-white/55">
-                    {chatRoomMembers.join(", ")}
+                    {chatRoomMembers.map((member, index) => (
+                      <button
+                        key={member.id}
+                        type="button"
+                        title="프로필 보기"
+                        className="bg-transparent p-0 text-inherit transition hover:text-white"
+                        onClick={() => openProfile(member.id)}
+                      >
+                        {index ? ", " : ""}
+                        {member.name}
+                      </button>
+                    ))}
                   </div>
                 ) : (
                   <div className="text-[15px] font-semibold text-white/35">참여자 없음</div>
@@ -2459,7 +3138,7 @@ function App() {
               ref={chatScrollRef}
               className={`mb-6 min-h-[140px] flex-1 overflow-y-auto pr-2 ${isChatFocused ? "pointer-events-auto" : "pointer-events-none"}`}
             >
-	              <div className="flex min-h-full flex-col justify-end gap-0.5">
+	              <div className="flex min-h-full flex-col justify-end gap-0">
                 {visibleChatFeedItems.length ? visibleChatFeedItems.map((item) => {
                   const ageMs = now - item.timestamp;
                   const itemOpacity = isChatFocused
@@ -2479,18 +3158,15 @@ function App() {
                     return (
                       <div key={item.id}>
                         {showMoveDivider ? (
-                          <div className="px-3 py-1">
+                          <div className="px-3 py-0.5">
                             <div className="h-px w-full bg-white/10" />
                           </div>
                         ) : null}
-                        <article className="px-3 py-1" style={{ opacity: itemOpacity }}>
+                        <article className="px-3 py-0.5" style={{ opacity: itemOpacity }}>
                         <div className="flex justify-end">
                           <span className="text-xs text-white/45">{formatTime(item.timestamp)}</span>
                         </div>
-                        <p className="mt-0.5 text-[21px] font-extrabold text-white/80">
-                          <span className="chat-text-outline chat-text-outline-inline chat-system-highlight" data-text="SYSTEM : ">
-                            SYSTEM :{" "}
-                          </span>
+                        <p className="mt-0.5 text-[21px] font-extrabold text-white">
                           {renderNoticeLine(item.text, "system", item.id)}
                         </p>
                       </article>
@@ -2503,23 +3179,23 @@ function App() {
                   return (
                     <div key={item.id}>
                       {showMoveDivider ? (
-                        <div className="px-3 py-1">
+                        <div className="px-3 py-0.5">
                           <div className="h-px w-full bg-white/10" />
                         </div>
                       ) : null}
-                      <article className="px-3 py-1" style={{ opacity: itemOpacity }}>
+                      <article className="px-3 py-0.5" style={{ opacity: itemOpacity }}>
                       <div className="flex justify-end">
                         <span className="text-xs text-white/45">{formatTime(item.timestamp)}</span>
                       </div>
-                      <p className="mt-0.5 text-[21px] font-extrabold text-white/80">
+                      <p className="mt-0.5 text-[21px] font-extrabold text-white">
                         {item.kind === "gm_chat" || sender?.role === "GM" ? (
                           <span className="chat-text-outline chat-text-outline-inline chat-gm-notice" data-text={item.text}>
                             {item.text}
                           </span>
                         ) : (
                           <>
-                            <span className="chat-text-outline chat-text-outline-inline chat-speaker-highlight" data-text={`${senderName} : `}>
-                              {senderName} :{" "}
+                            <span className="chat-text-outline chat-text-outline-inline chat-speaker-highlight" data-text={`${senderName} :\u00A0`}>
+                              {senderName} :{"\u00A0"}
                             </span>
                             {renderChatLine(item.text, item.id)}
                           </>
@@ -2540,6 +3216,7 @@ function App() {
                     setChatDraft(event.target.value);
                     setChatCursorIndex(event.target.selectionStart ?? event.target.value.length);
                     setChatAutocompleteIndex(0);
+                    setChatAutocompleteUserSelected(false);
                     setIsChatAutocompleteOpen(true);
                   }}
                   onKeyDown={(event) => {
@@ -2547,18 +3224,21 @@ function App() {
                     if (event.key === "ArrowDown") {
                       event.preventDefault();
                       setChatAutocompleteIndex((current) => (current + 1) % chatAutocomplete.suggestions.length);
+                      setChatAutocompleteUserSelected(true);
                       return;
                     }
                     if (event.key === "ArrowUp") {
                       event.preventDefault();
                       setChatAutocompleteIndex((current) => (current - 1 + chatAutocomplete.suggestions.length) % chatAutocomplete.suggestions.length);
+                      setChatAutocompleteUserSelected(true);
                       return;
                     }
                     if (event.key === "Escape") {
                       setIsChatAutocompleteOpen(false);
                       return;
                     }
-	                    if (event.key === "Tab" || (event.key === "Enter" && !event.shiftKey)) {
+	                    if (event.key === "Enter" && !event.shiftKey) {
+                        if (!chatAutocompleteUserSelected) return;
 	                      const selected = chatAutocomplete.suggestions[clamp(chatAutocompleteIndex, 0, chatAutocomplete.suggestions.length - 1)];
 	                      if (!selected) return;
 	                      event.preventDefault();
@@ -2567,6 +3247,7 @@ function App() {
 	                  }}
                   onClick={(event) => {
                     setChatCursorIndex(event.currentTarget.selectionStart ?? 0);
+                    setChatAutocompleteUserSelected(false);
                     setIsChatAutocompleteOpen(true);
                   }}
                   onKeyUp={(event) => {
@@ -2579,6 +3260,7 @@ function App() {
 	                    }
 	                    allowChatFocusRef.current = false;
 	                    setIsChatFocused(true);
+	                    setChatAutocompleteUserSelected(false);
 	                    setIsChatAutocompleteOpen(true);
 	                  }}
 	                  onBlur={() => {
@@ -2604,15 +3286,18 @@ function App() {
 	                        onMouseDown={(event) => event.preventDefault()}
 	                        onClick={() => applyChatAutocomplete(name)}
                         className={`chat-autocomplete-item flex w-full items-center justify-between rounded-xl px-3 py-2 text-left text-sm transition ${
-                          index === clamp(chatAutocompleteIndex, 0, chatAutocomplete.suggestions.length - 1)
+                          chatAutocompleteUserSelected && index === clamp(chatAutocompleteIndex, 0, chatAutocomplete.suggestions.length - 1)
                             ? "bg-white/10 text-white"
-                            : "text-white/85 hover:bg-white/8 hover:text-white"
+                            : "text-white/70 hover:bg-white/8 hover:text-white"
                         }`}
                       >
                         <span className="truncate font-semibold">{name}</span>
                         <span className="ml-3 shrink-0 text-xs text-white/40">{chatAutocomplete.isBracketQuery ? "[ ]" : "이름"}</span>
                       </button>
                     ))}
+                    <div className="px-3 pb-2 pt-1 text-xs text-white/45">
+                      ↑↓로 선택 · Enter로 적용
+                    </div>
                   </div>
                 ) : null}
               </div>
@@ -2622,6 +3307,7 @@ function App() {
             </form>
           </div>
         </aside>
+        ) : null}
 
         {modalCard ? (
           <div
@@ -2638,6 +3324,8 @@ function App() {
                 <CardModalPreview
                   card={modalCard}
                   visible={canSeeModalCard}
+                  sequenceNumber={cardSequenceById[modalCard.id]}
+                  categorySequenceNumber={cardCategorySequenceById[modalCard.id]}
                   isZooming={isAltZooming}
                   zoomFocus={modalZoomFocus}
                   flipHintText={
@@ -2724,7 +3412,7 @@ function App() {
                         data-hoverable="true"
                       >
                         <div className="w-[88px] shrink-0">
-                          <CardTile card={modalCard} visible compact />
+                          <CardTile card={modalCard} visible sequenceNumber={cardSequenceById[modalCard.id]} categorySequenceNumber={cardCategorySequenceById[modalCard.id]} compact />
                         </div>
                         <div className="min-w-0">
                           <div className="text-sm font-semibold text-white/90">펼친 채로</div>
@@ -2739,7 +3427,7 @@ function App() {
                         data-hoverable="true"
                       >
                         <div className="w-[88px] shrink-0">
-                          <CardTile card={modalCard} visible={false} compact />
+                          <CardTile card={modalCard} visible={false} sequenceNumber={cardSequenceById[modalCard.id]} categorySequenceNumber={cardCategorySequenceById[modalCard.id]} compact />
                         </div>
                         <div className="min-w-0">
                           <div className="text-sm font-semibold text-white/90">덮은 채로</div>
@@ -2788,9 +3476,9 @@ function App() {
                               <CharacterPortrait player={player} />
                             </div>
                             <div className="min-w-0">
-                              <div className="truncate text-sm font-semibold text-white/90">{characterProfiles[player.id]?.characterName ?? player.name}</div>
+                              <div className="truncate text-sm font-semibold text-white/90">{player.name}</div>
                               <div className="mt-0.5 line-clamp-2 text-[11px] leading-snug text-white/55">
-                                {player.role === "GM" ? "게임 마스터" : characterProfiles[player.id]?.tagline ?? ""}
+                                {player.role === "GM" ? "게임 마스터" : characterById[player.id]?.tagline ?? ""}
                               </div>
                             </div>
                           </button>
@@ -2876,6 +3564,8 @@ function App() {
                 <CardTile
                   card={card}
                   visible={Boolean(card.handFaceUp)}
+                  sequenceNumber={cardSequenceById[card.id]}
+                  categorySequenceNumber={cardCategorySequenceById[card.id]}
                   onClick={() => openHandCard(card.id)}
                   onMouseEnter={() => setHoveredHandCardId(card.id)}
                   onMouseLeave={() => setHoveredHandCardId((current) => (current === card.id ? null : current))}
@@ -2895,6 +3585,447 @@ function App() {
       </div>
       </div>
 
+      {isEditorMode ? (
+        <div className="pointer-events-none absolute inset-0 z-[90] flex items-start justify-end p-6">
+          <div className="pointer-events-auto w-[min(520px,92vw)] max-h-[92vh] overflow-hidden rounded-[26px] border border-white/12 bg-black/45 text-white shadow-[0_24px_80px_rgba(0,0,0,0.35)] backdrop-blur-md">
+            <div className="flex items-center justify-between gap-3 border-b border-white/10 px-5 py-4">
+              <div className="min-w-0">
+                <div className="text-[11px] font-semibold uppercase tracking-[0.22em] text-white/55">커스텀 모드 · 게임 에디터</div>
+                <div className="mt-1 truncate text-[18px] font-semibold text-white/95">{(state.gameData?.meta?.title ?? gameData.meta.title) || "시나리오"}</div>
+              </div>
+              <div className="flex items-center gap-2">
+                <button type="button" onClick={persistGameDataDraft} className="inline-flex h-10 items-center justify-center rounded-xl border border-white/12 bg-white/8 px-3 text-sm font-semibold text-white/90 transition hover:bg-white/12">
+                  저장
+                </button>
+                <button type="button" onClick={downloadGameData} className="inline-flex h-10 items-center justify-center rounded-xl border border-white/12 bg-white/5 px-3 text-sm font-semibold text-white/80 transition hover:bg-white/10">
+                  내보내기
+                </button>
+                <button type="button" onClick={() => importInputRef.current?.click()} className="inline-flex h-10 items-center justify-center rounded-xl border border-white/12 bg-white/5 px-3 text-sm font-semibold text-white/80 transition hover:bg-white/10">
+                  불러오기
+                </button>
+                <input
+                  ref={importInputRef}
+                  type="file"
+                  accept="application/json,.json"
+                  hidden
+                  onChange={(event) => {
+                    const file = event.target.files?.[0] ?? null;
+                    if (!file) return;
+                    importGameDataFromFile(file).finally(() => {
+                      event.target.value = "";
+                    });
+                  }}
+                />
+              </div>
+            </div>
+
+            <div className="flex items-center justify-between gap-3 px-5 py-3">
+              <label className="flex items-center gap-2 text-sm font-semibold text-white/85">
+                <input
+                  type="checkbox"
+                  checked={Boolean(state.gameData?.gmEnabled ?? gameData.gmEnabled)}
+                  onChange={(event) => setGameDataDraft((current) => ({ ...current, gmEnabled: Boolean(event.target.checked) }))}
+                />
+                GM 캐릭터 사용
+              </label>
+              <button type="button" onClick={startPlayFromGameData} className="inline-flex h-10 items-center justify-center rounded-xl bg-amber-200 px-3 text-sm font-extrabold text-stone-900 transition hover:bg-amber-100">
+                이 데이터로 플레이 시작
+              </button>
+            </div>
+
+            <div className="flex gap-2 border-b border-white/10 px-5 pb-4">
+              {[
+                ["characters", "캐릭터"],
+                ["books", "읽을거리"],
+                ["cards", "카드"],
+                ["map", "맵 배치"],
+              ].map(([key, label]) => (
+                <button
+                  key={key}
+                  type="button"
+                  onClick={() => setEditorTab(key)}
+                  className={`inline-flex h-9 items-center justify-center rounded-xl px-3 text-sm font-semibold transition ${editorTab === key ? "bg-white/14 text-white" : "bg-white/5 text-white/70 hover:bg-white/10 hover:text-white/90"}`}
+                >
+                  {label}
+                </button>
+              ))}
+            </div>
+
+            <div className="max-h-[calc(92vh-210px)] overflow-y-auto px-5 py-5">
+              {editorTab === "characters" ? (
+                <div className="space-y-4">
+                  <div className="flex items-center justify-between gap-3">
+                    <div className="text-sm font-semibold text-white/90">캐릭터 목록</div>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const id = makeId("ch");
+                        setSelectedCharacterId(id);
+                        setGameDataDraft((current) => ({
+                          ...current,
+                          characters: [...current.characters, { id, name: "새 캐릭터", tagline: "", bio: "", tags: [], storybook: "" }],
+                        }));
+                      }}
+                      className="inline-flex h-9 items-center justify-center rounded-xl border border-white/12 bg-white/6 px-3 text-sm font-semibold text-white/85 transition hover:bg-white/10"
+                    >
+                      + 추가
+                    </button>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-2">
+                    {(state.gameData?.characters ?? gameData.characters).map((character) => (
+                      <button
+                        key={character.id}
+                        type="button"
+                        onClick={() => setSelectedCharacterId(character.id)}
+                        className={`truncate rounded-xl border px-3 py-2 text-left text-sm font-semibold transition ${selectedCharacterId === character.id ? "border-amber-200/70 bg-amber-200/10 text-white" : "border-white/10 bg-white/5 text-white/70 hover:bg-white/10 hover:text-white/90"}`}
+                      >
+                        {character.name || "이름 없음"}
+                      </button>
+                    ))}
+                  </div>
+
+                  {(() => {
+                    const list = state.gameData?.characters ?? gameData.characters;
+                    const selected = list.find((c) => c.id === selectedCharacterId) ?? list[0] ?? null;
+                    if (!selected) return null;
+                    return (
+                      <div className="space-y-3 rounded-2xl border border-white/10 bg-white/5 p-4">
+                        <div className="flex items-center justify-between gap-3">
+                          <div className="text-sm font-semibold text-white/90">캐릭터 설정</div>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setGameDataDraft((current) => ({
+                                ...current,
+                                characters: current.characters.filter((c) => c.id !== selected.id),
+                              }));
+                              setSelectedCharacterId((current) => (current === selected.id ? null : current));
+                            }}
+                            className="inline-flex h-9 items-center justify-center rounded-xl border border-white/12 bg-white/6 px-3 text-sm font-semibold text-white/80 transition hover:bg-white/10"
+                          >
+                            삭제
+                          </button>
+                        </div>
+
+                        <label className="grid gap-1 text-sm">
+                          <span className="text-xs font-semibold text-white/55">이름</span>
+                          <input
+                            value={selected.name}
+                            onChange={(event) => {
+                              const value = event.target.value;
+                              setGameDataDraft((current) => ({
+                                ...current,
+                                characters: current.characters.map((c) => (c.id === selected.id ? { ...c, name: value } : c)),
+                              }));
+                            }}
+                            className="h-10 rounded-xl border border-white/12 bg-black/25 px-3 text-white outline-none"
+                          />
+                        </label>
+
+                        <label className="grid gap-1 text-sm">
+                          <span className="text-xs font-semibold text-white/55">태그라인</span>
+                          <input
+                            value={selected.tagline}
+                            onChange={(event) => {
+                              const value = event.target.value;
+                              setGameDataDraft((current) => ({
+                                ...current,
+                                characters: current.characters.map((c) => (c.id === selected.id ? { ...c, tagline: value } : c)),
+                              }));
+                            }}
+                            className="h-10 rounded-xl border border-white/12 bg-black/25 px-3 text-white outline-none"
+                          />
+                        </label>
+
+                        <label className="grid gap-1 text-sm">
+                          <span className="text-xs font-semibold text-white/55">캐릭터 설명</span>
+                          <textarea
+                            value={selected.bio}
+                            onChange={(event) => {
+                              const value = event.target.value;
+                              setGameDataDraft((current) => ({
+                                ...current,
+                                characters: current.characters.map((c) => (c.id === selected.id ? { ...c, bio: value } : c)),
+                              }));
+                            }}
+                            className="min-h-[90px] rounded-xl border border-white/12 bg-black/25 p-3 text-white outline-none"
+                          />
+                        </label>
+
+                        <label className="grid gap-1 text-sm">
+                          <span className="text-xs font-semibold text-white/55">스토리북 (텍스트)</span>
+                          <textarea
+                            value={selected.storybook}
+                            onChange={(event) => {
+                              const value = event.target.value;
+                              setGameDataDraft((current) => ({
+                                ...current,
+                                characters: current.characters.map((c) => (c.id === selected.id ? { ...c, storybook: value } : c)),
+                              }));
+                            }}
+                            className="min-h-[160px] rounded-xl border border-white/12 bg-black/25 p-3 text-white outline-none"
+                          />
+                        </label>
+                      </div>
+                    );
+                  })()}
+                </div>
+              ) : null}
+
+              {editorTab === "books" ? (
+                <div className="space-y-4">
+                  <label className="grid gap-1 text-sm">
+                    <span className="text-xs font-semibold text-white/55">공용 룰북</span>
+                    <textarea
+                      value={state.gameData?.books?.sharedRulebook?.body ?? gameData.books.sharedRulebook.body}
+                      onChange={(event) => {
+                        const value = event.target.value;
+                        setGameDataDraft((current) => ({
+                          ...current,
+                          books: { ...current.books, sharedRulebook: { ...(current.books.sharedRulebook ?? {}), body: value } },
+                        }), { sync: false });
+                      }}
+                      className="min-h-[260px] rounded-xl border border-white/12 bg-black/25 p-3 text-white outline-none"
+                    />
+                  </label>
+
+                  <label className="grid gap-1 text-sm">
+                    <span className="text-xs font-semibold text-white/55">GM 전용 룰북</span>
+                    <textarea
+                      value={state.gameData?.books?.gmRulebook?.body ?? gameData.books.gmRulebook.body}
+                      onChange={(event) => {
+                        const value = event.target.value;
+                        setGameDataDraft((current) => ({
+                          ...current,
+                          books: { ...current.books, gmRulebook: { ...(current.books.gmRulebook ?? {}), body: value } },
+                        }), { sync: false });
+                      }}
+                      className="min-h-[200px] rounded-xl border border-white/12 bg-black/25 p-3 text-white outline-none"
+                    />
+                  </label>
+                </div>
+              ) : null}
+
+              {editorTab === "cards" ? (
+                <div className="space-y-4">
+                  <div className="space-y-2">
+                    <div className="text-xs font-semibold text-white/55">카드 카테고리</div>
+                    <div className="flex flex-wrap gap-2">
+                      {(state.gameData?.cards?.categories ?? gameData.cards.categories).map((category) => (
+                        <div key={category} className="inline-flex items-center gap-2 rounded-xl border border-white/12 bg-white/6 px-3 py-2 text-sm font-semibold text-white/85">
+                          <span className="max-w-[260px] truncate">{category}</span>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setGameDataDraft((current) => {
+                                const nextCategories = (current.cards.categories ?? []).filter((c) => c !== category);
+                                const safeCategories = nextCategories.length ? nextCategories : ["미분류"];
+                                const fallback = safeCategories[0] ?? "미분류";
+                                return {
+                                  ...current,
+                                  cards: {
+                                    ...current.cards,
+                                    categories: safeCategories,
+                                    items: current.cards.items.map((card) => (card.category === category ? { ...card, category: fallback } : card)),
+                                  },
+                                };
+                              }, { sync: false });
+                            }}
+                            className="inline-flex h-6 w-6 items-center justify-center rounded-lg border border-white/12 bg-black/20 text-white/80 transition hover:bg-white/10"
+                            aria-label="카테고리 삭제"
+                          >
+                            ×
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                    <input
+                      value={categoryDraft}
+                      onChange={(event) => setCategoryDraft(event.target.value)}
+                      onKeyDown={(event) => {
+                        if (event.key !== "Enter") return;
+                        event.preventDefault();
+                        const value = categoryDraft.trim();
+                        if (!value) return;
+                        setCategoryDraft("");
+                        setGameDataDraft((current) => {
+                          const exists = (current.cards.categories ?? []).includes(value);
+                          if (exists) return current;
+                          return { ...current, cards: { ...current.cards, categories: [...(current.cards.categories ?? []), value] } };
+                        }, { sync: false });
+                      }}
+                      placeholder="카테고리 입력 후 Enter"
+                      className="h-10 w-full rounded-xl border border-white/12 bg-black/25 px-3 text-white outline-none placeholder:text-white/35"
+                    />
+                  </div>
+
+                  <div className="flex items-center justify-between gap-3">
+                    <div className="text-sm font-semibold text-white/90">카드 목록</div>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const id = makeId("card");
+                        setSelectedCardId(id);
+                        setGameDataDraft((current) => ({
+                          ...current,
+                          cards: {
+                            ...current.cards,
+                            items: (() => {
+                              const category = current.cards.categories[0] ?? "미분류";
+                              const nextIndex = (current.cards.items ?? []).filter((item) => item.category === category).length + 1;
+                              const title = `${category}단서${nextIndex}`;
+                              return [...current.cards.items, { id, title, description: "", category, spawn: { x: STAGE_WIDTH / 2, y: STAGE_HEIGHT / 2 } }];
+                            })(),
+                          },
+                        }));
+                      }}
+                      className="inline-flex h-9 items-center justify-center rounded-xl border border-white/12 bg-white/6 px-3 text-sm font-semibold text-white/85 transition hover:bg-white/10"
+                    >
+                      + 추가
+                    </button>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-2">
+                    {(state.gameData?.cards?.items ?? gameData.cards.items).map((card) => (
+                      <button
+                        key={card.id}
+                        type="button"
+                        onClick={() => setSelectedCardId(card.id)}
+                        className={`truncate rounded-xl border px-3 py-2 text-left text-sm font-semibold transition ${selectedCardId === card.id ? "border-amber-200/70 bg-amber-200/10 text-white" : "border-white/10 bg-white/5 text-white/70 hover:bg-white/10 hover:text-white/90"}`}
+                      >
+                        {card.title || "이름 없음"}
+                      </button>
+                    ))}
+                  </div>
+
+                  {(() => {
+                    const list = state.gameData?.cards?.items ?? gameData.cards.items;
+                    const selected = list.find((c) => c.id === selectedCardId) ?? list[0] ?? null;
+                    const categories = state.gameData?.cards?.categories ?? gameData.cards.categories;
+                    if (!selected) return null;
+                    return (
+                      <div className="space-y-3 rounded-2xl border border-white/10 bg-white/5 p-4">
+                        <div className="flex items-center justify-between gap-3">
+                          <div className="text-sm font-semibold text-white/90">카드 설정</div>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setGameDataDraft((current) => ({
+                                ...current,
+                                cards: { ...current.cards, items: current.cards.items.filter((c) => c.id !== selected.id) },
+                              }));
+                              setSelectedCardId((current) => (current === selected.id ? null : current));
+                            }}
+                            className="inline-flex h-9 items-center justify-center rounded-xl border border-white/12 bg-white/6 px-3 text-sm font-semibold text-white/80 transition hover:bg-white/10"
+                          >
+                            삭제
+                          </button>
+                        </div>
+
+                        <label className="grid gap-1 text-sm">
+                          <span className="text-xs font-semibold text-white/55">이름</span>
+                          <input
+                            value={selected.title}
+                            onChange={(event) => {
+                              const value = event.target.value;
+                              setGameDataDraft((current) => ({
+                                ...current,
+                                cards: { ...current.cards, items: current.cards.items.map((c) => (c.id === selected.id ? { ...c, title: value } : c)) },
+                              }));
+                            }}
+                            className="h-10 rounded-xl border border-white/12 bg-black/25 px-3 text-white outline-none"
+                          />
+                        </label>
+
+                        <label className="grid gap-1 text-sm">
+                          <span className="text-xs font-semibold text-white/55">내용</span>
+                          <textarea
+                            value={selected.description}
+                            onChange={(event) => {
+                              const value = event.target.value;
+                              setGameDataDraft((current) => ({
+                                ...current,
+                                cards: { ...current.cards, items: current.cards.items.map((c) => (c.id === selected.id ? { ...c, description: value } : c)) },
+                              }));
+                            }}
+                            className="min-h-[140px] rounded-xl border border-white/12 bg-black/25 p-3 text-white outline-none"
+                          />
+                        </label>
+
+                        <label className="grid gap-1 text-sm">
+                          <span className="text-xs font-semibold text-white/55">카테고리(뒷면)</span>
+                          <select
+                            value={selected.category}
+                            onChange={(event) => {
+                              const value = event.target.value;
+                              setGameDataDraft((current) => ({
+                                ...current,
+                                cards: { ...current.cards, items: current.cards.items.map((c) => (c.id === selected.id ? { ...c, category: value } : c)) },
+                              }));
+                            }}
+                            className="h-10 rounded-xl border border-white/12 bg-black/25 px-3 text-white outline-none"
+                          >
+                            {categories.map((c) => (
+                              <option key={c} value={c} className="bg-slate-900">{c}</option>
+                            ))}
+                          </select>
+                        </label>
+                      </div>
+                    );
+                  })()}
+                </div>
+              ) : null}
+
+              {editorTab === "map" ? (
+                <div className="space-y-4">
+                  <div className="rounded-2xl border border-white/10 bg-white/5 p-4 text-sm text-white/75">
+                    - 캐릭터/카드는 스테이지에서 드래그로 초기 위치를 설정합니다.<br />
+                    - 방/이동범위/맵 크기는 현재 맵 편집 UI(핸들)를 사용합니다.
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setState((current) => {
+                        const allFaceUp = (current.cards ?? []).every((card) => (card.ownerId === null ? Boolean(card.isFaceUp) : true));
+                        const nextFaceUp = !allFaceUp;
+                        return {
+                          ...current,
+                          cards: (current.cards ?? []).map((card) => ({
+                            ...card,
+                            ownerId: null,
+                            handFaceUp: false,
+                            isFaceUp: nextFaceUp,
+                          })),
+                        };
+                      });
+                    }}
+                    className="inline-flex h-11 w-full items-center justify-center rounded-xl border border-white/12 bg-white/6 text-sm font-semibold text-white/90 transition hover:bg-white/10"
+                  >
+                    모두 뒤집기
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setState((current) => {
+                        const base = normalizeGameData(current.gameData ?? gameData);
+                        const nextGameData = buildGameDataWithCurrentMap(base, current);
+                        saveGameData(nextGameData);
+                        return { ...current, gameData: nextGameData };
+                      });
+                      setEditorTab("cards");
+                    }}
+                    className="inline-flex h-11 w-full items-center justify-center rounded-xl bg-amber-200 text-sm font-extrabold text-stone-900 transition hover:bg-amber-100"
+                  >
+                    편집 종료(초기 리스폰 반영)
+                  </button>
+                </div>
+              ) : null}
+            </div>
+          </div>
+        </div>
+      ) : null}
+
       <audio ref={bgmAudioRef} src={defaultBgm} preload="auto" hidden />
 
       {profilePlayer ? (
@@ -2906,12 +4037,12 @@ function App() {
                   <CharacterPortrait player={profilePlayer} size="profile" />
                 </div>
                 <div className="pt-1">
-                  <h2 className="mt-1 text-3xl font-semibold">{characterProfiles[profilePlayer.id]?.characterName ?? profilePlayer.name}</h2>
-                  <p className="mt-1 text-sm text-stone-600">{characterProfiles[profilePlayer.id]?.tagline ?? ""}</p>
+                  <h2 className="mt-1 text-3xl font-semibold">{profilePlayer.name}</h2>
+                  <p className="mt-1 text-sm text-stone-600">{characterById[profilePlayer.id]?.tagline ?? (profilePlayer.role === "GM" ? "게임 마스터" : "")}</p>
                 </div>
               </div>
               <div className="rounded-[22px] border border-stone-900/8 bg-white/72 p-5">
-                <p className="text-sm leading-7 text-stone-700">{characterProfiles[profilePlayer.id]?.bio ?? "등록된 소개가 없습니다."}</p>
+                <p className="text-sm leading-7 text-stone-700">{characterById[profilePlayer.id]?.bio ?? "등록된 소개가 없습니다."}</p>
               </div>
             </div>
           </ZoomLensPreview>
@@ -2923,7 +4054,8 @@ function App() {
           <ZoomLensPreview isZooming={isAltZooming}>
             <StorybookModal
               player={storybookPlayer}
-              storybook={characterProfiles[storybookPlayer.id]?.storybook ?? ""}
+              tagline={characterById[storybookPlayer.id]?.tagline ?? ""}
+              storybook={characterById[storybookPlayer.id]?.storybook ?? ""}
               pageIndex={state.storybookPageIndex}
               onPrev={() => setState((current) => ({ ...current, storybookPageIndex: Math.max(0, current.storybookPageIndex - 1) }))}
               onNext={(pageCount) => setState((current) => ({ ...current, storybookPageIndex: Math.min(pageCount - 1, current.storybookPageIndex + 1) }))}
@@ -2937,7 +4069,7 @@ function App() {
         <FloatingModal onClose={() => setState((current) => ({ ...current, documentModalType: null }))}>
           <ZoomLensPreview isZooming={isAltZooming}>
             <RulebookModalContent
-              document={state.documentModalType === "gm-rulebook" ? gmRulebook : sharedRulebook}
+              document={state.documentModalType === "gm-rulebook" ? gameData.books.gmRulebook : gameData.books.sharedRulebook}
               onClose={() => setState((current) => ({ ...current, documentModalType: null }))}
             />
           </ZoomLensPreview>
@@ -2951,6 +4083,7 @@ function App() {
               type={activeDecision.type}
               players={nonGmPlayers.filter((player) => player.id !== activePlayer.id)}
               onSubmit={submitDecisionResponse}
+              taglineById={Object.fromEntries(Object.entries(characterById).map(([id, c]) => [id, c.tagline]))}
             />
           </ZoomLensPreview>
         </OverlayModal>
@@ -2962,6 +4095,7 @@ function App() {
             <DecisionResultModal
               session={activeDecision}
               players={state.players}
+              taglineById={Object.fromEntries(Object.entries(characterById).map(([id, c]) => [id, c.tagline]))}
               onClose={() => setState((current) => ({ ...current, decisionSession: null }))}
             />
           </ZoomLensPreview>
@@ -2974,6 +4108,7 @@ function App() {
             <DecisionResultModal
               session={{ type: lastDecisionOutcome.type, status: "complete", responses: {}, result: lastDecisionOutcome.result }}
               players={state.players}
+              taglineById={Object.fromEntries(Object.entries(characterById).map(([id, c]) => [id, c.tagline]))}
               onClose={() => setState((current) => ({ ...current, lastDecisionModalOpen: false }))} />
           </ZoomLensPreview>
         </OverlayModal>
@@ -3003,6 +4138,8 @@ function ControlField({ label, value, onChange, options, icon, light = false }) 
 function CardTile({
   card,
   visible,
+  sequenceNumber,
+  categorySequenceNumber,
   onClick,
   actionLabel,
   highlighted = false,
@@ -3021,10 +4158,12 @@ function CardTile({
 }) {
   const widthClass = modal ? "w-[330px]" : micro ? "w-[19px] shrink-0" : hand ? "w-[75px] shrink-0" : board ? "w-full" : compact ? "w-[64px]" : "w-[88px]";
   const cardScaleClass = modal ? "scale-[1.8333]" : micro ? "scale-[0.105]" : hand ? "scale-[0.4148]" : board ? "scale-[0.2518]" : compact ? "scale-[0.3555]" : "scale-[0.4888]";
-  const cardNumber = getCardSequence(card.id);
-  const categoryCode = getCardCategoryCode(card.id);
+  const cardNumber = typeof sequenceNumber === "number" && Number.isFinite(sequenceNumber) ? sequenceNumber : getCardSequence(card.id);
+  const categoryCode = cardNumber > 0 ? String.fromCharCode(64 + cardNumber) : "A";
+  const categoryNumber = typeof categorySequenceNumber === "number" && Number.isFinite(categorySequenceNumber) ? categorySequenceNumber : 0;
   const categoryLabel = `[${card.type ?? "문서"}]`;
-  const cardTitle = card.summary ?? card.title;
+  const cardTitle = card.title ?? "";
+  const paddedCardNumber = String(cardNumber).padStart(3, "0");
   return (
     <div
       role={onClick ? "button" : undefined}
@@ -3058,10 +4197,10 @@ function CardTile({
             {visible ? (
               <>
                 <div className="px-2 py-1 text-[9px] font-semibold uppercase tracking-[0.24em] bg-stone-900/7 text-stone-600">
-                  {`${card.type ?? "단서"} 단서 ${categoryCode}`}
+                  {`${card.type ?? "미분류"} ${categoryNumber > 0 ? categoryNumber : categoryCode}`}
                 </div>
                 <div className="text-[9px] font-semibold uppercase tracking-[0.22em] text-stone-400">
-                  #{cardNumber}
+                  #{paddedCardNumber}
                 </div>
               </>
             ) : null}
@@ -3093,7 +4232,7 @@ function CardTile({
   );
 }
 
-function CardModalPreview({ card, visible, isZooming, zoomFocus, onPointerMove, onPointerLeave, flipHintText, onFlip, onTooltipChange, scopeHintText }) {
+function CardModalPreview({ card, visible, sequenceNumber, categorySequenceNumber, isZooming, zoomFocus, onPointerMove, onPointerLeave, flipHintText, onFlip, onTooltipChange, scopeHintText }) {
   const lensWidth = 1080;
   const lensHeight = 540;
   const zoomScale = 5;
@@ -3142,6 +4281,8 @@ function CardModalPreview({ card, visible, isZooming, zoomFocus, onPointerMove, 
       <CardTile
         card={card}
         visible={visible}
+        sequenceNumber={sequenceNumber}
+        categorySequenceNumber={categorySequenceNumber}
         actionLabel=""
         modal
       />
@@ -3178,6 +4319,8 @@ function CardModalPreview({ card, visible, isZooming, zoomFocus, onPointerMove, 
             <CardTile
               card={card}
               visible={visible}
+              sequenceNumber={sequenceNumber}
+              categorySequenceNumber={categorySequenceNumber}
               actionLabel=""
               modal
             />
@@ -3333,7 +4476,7 @@ function RulebookModalContent({ document, onClose }) {
   );
 }
 
-function DecisionModal({ type, players, onSubmit }) {
+function DecisionModal({ type, players, onSubmit, taglineById = {} }) {
   return (
     <div className="w-[min(760px,94vw)] rounded-[28px] bg-[#f7f0e4] p-6 text-stone-900 shadow-[0_24px_80px_rgba(0,0,0,0.28)]">
       <p className="text-xs uppercase tracking-[0.24em] text-stone-500">{type === "nomination" ? "Nomination" : "Vote"}</p>
@@ -3352,10 +4495,10 @@ function DecisionModal({ type, players, onSubmit }) {
             </div>
             <div className="min-w-0 flex-1">
               <div className="truncate text-[15px] font-semibold text-stone-900">
-                {characterProfiles[player.id]?.characterName ?? player.name}
+                {player.name}
               </div>
               <div className="mt-1 line-clamp-2 text-[12px] leading-snug text-stone-600">
-                {characterProfiles[player.id]?.tagline ?? ""}
+                {taglineById[player.id] ?? ""}
               </div>
             </div>
             <div className="shrink-0 self-center text-[12px] font-semibold text-stone-500 transition group-hover:text-stone-800">
@@ -3375,7 +4518,7 @@ function DecisionModal({ type, players, onSubmit }) {
   );
 }
 
-function DecisionResultModal({ session, players, onClose }) {
+function DecisionResultModal({ session, players, onClose, taglineById = {} }) {
   const result = session.result;
   const highlightWinner = (targetId) => session.type === "vote" && result.winners?.includes(targetId);
   return (
@@ -3391,8 +4534,8 @@ function DecisionResultModal({ session, players, onClose }) {
                   <CharacterPortrait player={players.find((p) => p.id === line.from)} />
                 </div>
                 <div className="min-w-0">
-                  <div className="text-sm font-semibold text-stone-900">{characterProfiles[line.from]?.characterName ?? getPlayerName(players, line.from)}</div>
-                  <div className="text-xs text-stone-600">{characterProfiles[line.from]?.tagline ?? ""}</div>
+                  <div className="text-sm font-semibold text-stone-900">{getPlayerName(players, line.from)}</div>
+                  <div className="text-xs text-stone-600">{taglineById[line.from] ?? ""}</div>
                 </div>
               </div>
 
@@ -3407,8 +4550,8 @@ function DecisionResultModal({ session, players, onClose }) {
               ) : (
                 <div className="flex min-w-0 items-center justify-end gap-3">
                   <div className="min-w-0 text-right">
-                    <div className="truncate text-sm font-semibold text-stone-900">{characterProfiles[line.to]?.characterName ?? getPlayerName(players, line.to)}</div>
-                    <div className="truncate text-xs text-stone-600">{characterProfiles[line.to]?.tagline ?? ""}</div>
+                    <div className="truncate text-sm font-semibold text-stone-900">{getPlayerName(players, line.to)}</div>
+                    <div className="truncate text-xs text-stone-600">{taglineById[line.to] ?? ""}</div>
                   </div>
                   <div className="overflow-hidden rounded-2xl border border-stone-900/8 bg-[#f8f1e8]">
                     <CharacterPortrait player={players.find((p) => p.id === line.to)} />
@@ -3434,8 +4577,8 @@ function DecisionResultModal({ session, players, onClose }) {
                       <CharacterPortrait player={players.find((p) => p.id === entry.targetId)} />
                     </div>
                     <div className="min-w-0">
-                      <div className="truncate text-sm font-semibold text-stone-900">{characterProfiles[entry.targetId]?.characterName ?? getPlayerName(players, entry.targetId)}</div>
-                      <div className="truncate text-xs text-stone-600">{characterProfiles[entry.targetId]?.tagline ?? ""}</div>
+                      <div className="truncate text-sm font-semibold text-stone-900">{getPlayerName(players, entry.targetId)}</div>
+                      <div className="truncate text-xs text-stone-600">{taglineById[entry.targetId] ?? ""}</div>
                     </div>
                   </div>
                 )}
@@ -3446,7 +4589,7 @@ function DecisionResultModal({ session, players, onClose }) {
             ))}
           </div>
           <div className="mt-4 rounded-2xl bg-stone-900 px-4 py-3 text-sm font-semibold text-white">
-            최다 득표: {result.winners.length ? result.winners.map((winner) => winner === "abstain" ? "기권" : (characterProfiles[winner]?.characterName ?? getPlayerName(players, winner))).join(", ") : "없음"}
+            최다 득표: {result.winners.length ? result.winners.map((winner) => winner === "abstain" ? "기권" : getPlayerName(players, winner)).join(", ") : "없음"}
           </div>
         </div>
       )}
@@ -3512,7 +4655,7 @@ function splitStorybookIntoPages(text) {
   return pages.length ? pages : ["스토리북이 비어 있습니다."];
 }
 
-function StorybookModal({ player, storybook, pageIndex, onPrev, onNext, onClose }) {
+function StorybookModal({ player, tagline = "", storybook, pageIndex, onPrev, onNext, onClose }) {
   const pages = splitStorybookIntoPages(storybook);
   const safeIndex = clamp(pageIndex, 0, pages.length - 1);
   return (
@@ -3520,8 +4663,8 @@ function StorybookModal({ player, storybook, pageIndex, onPrev, onNext, onClose 
       <div className="mb-5 flex items-start justify-between gap-4">
         <div>
           <div className="text-[11px] font-semibold uppercase tracking-[0.22em] text-stone-500">스토리북</div>
-          <div className="mt-1 text-2xl font-semibold">{characterProfiles[player.id]?.characterName ?? player.name}</div>
-          <div className="mt-1 text-sm text-stone-600">{characterProfiles[player.id]?.tagline ?? ""}</div>
+          <div className="mt-1 text-2xl font-semibold">{player.name}</div>
+          <div className="mt-1 text-sm text-stone-600">{tagline}</div>
         </div>
         <button type="button" onClick={onClose} className="rounded-2xl border border-stone-900/10 bg-white/70 px-4 py-2 text-sm font-semibold text-stone-700 transition hover:bg-white">
           닫기
@@ -4189,7 +5332,7 @@ function getActivePlayer(state) {
 function getPlayerName(players, playerId) {
   const player = players.find((item) => item.id === playerId) ?? null;
   if (!player) return "알 수 없음";
-  return characterProfiles[player.id]?.characterName ?? player.name ?? "알 수 없음";
+  return player.name ?? "알 수 없음";
 }
 
 function getRoomName(rooms, roomId) {
@@ -4230,27 +5373,27 @@ function nonGmPlayersInRoom(state, roomId) {
 
 function buildEnterNotice(state, playerName, roomId) {
   const particle = subjectParticle(playerName);
-  if (roomId === "lobby") return `[입장] ${playerName}${particle} 로비로 들어왔습니다.`;
+  if (roomId === "lobby") return `- ${playerName}${particle} 로비${directionParticle("로비")} 들어왔습니다.`;
   const roomName = getRoomName(state.rooms, roomId);
-  return `[입장] ${playerName}${particle} ${roomName}에 들어왔습니다.`;
+  return `- ${playerName}${particle} ${roomName}에 들어왔습니다.`;
 }
 
 function buildLeaveNotice(state, playerName, roomId) {
   const particle = subjectParticle(playerName);
-  if (roomId === "lobby") return `[퇴장] ${playerName}${particle} 로비를 떠났습니다.`;
+  if (roomId === "lobby") return `- ${playerName}${particle} 로비${objectParticle("로비")} 떠났습니다.`;
   const roomName = getRoomName(state.rooms, roomId);
-  return `[퇴장] ${playerName}${particle} ${roomName}를 떠났습니다.`;
+  return `- ${playerName}${particle} ${roomName}${objectParticle(roomName)} 떠났습니다.`;
 }
 
 function buildMoveNotice(state, playerName, roomId) {
   const particle = subjectParticle(playerName);
   const roomName = getRoomName(state.rooms, roomId);
-  return `[이동] ${playerName}${particle} ${roomName}로 이동했습니다.`;
+  return `- ${playerName}${particle} ${roomName}${directionParticle(roomName)} 이동했습니다.`;
 }
 
 function buildSelfMoveNotice(state, roomId) {
   const roomName = getRoomName(state.rooms, roomId);
-  return `[이동] ${roomName}로 이동했습니다.`;
+  return `- ${roomName}${directionParticle(roomName)} 이동했습니다.`;
 }
 
 function hasFinalConsonant(koreanText) {
@@ -4266,16 +5409,37 @@ function subjectParticle(word) {
   return hasFinalConsonant(word) ? "이" : "가";
 }
 
+function objectParticle(word) {
+  return hasFinalConsonant(word) ? "을" : "를";
+}
+
+function directionParticle(word) {
+  const trimmed = (word ?? "").trim();
+  if (!trimmed) return "로";
+  if (!hasFinalConsonant(trimmed)) return "로";
+  return endsWithRieul(trimmed) ? "로" : "으로";
+}
+
+function endsWithRieul(koreanText) {
+  const trimmed = (koreanText ?? "").trim();
+  if (!trimmed) return false;
+  const code = trimmed.codePointAt(trimmed.length - 1);
+  if (!code) return false;
+  if (code < 0xac00 || code > 0xd7a3) return false;
+  const jong = (code - 0xac00) % 28;
+  return jong === 8;
+}
+
 function buildRoomNotice(state, playerName, roomId) {
   const particle = subjectParticle(playerName);
-  if (roomId === "lobby") return `${playerName}${particle} 로비로 돌아왔습니다.`;
+  if (roomId === "lobby") return `${playerName}${particle} 로비${directionParticle("로비")} 돌아왔습니다.`;
   const roomName = getRoomName(state.rooms, roomId);
   return `${playerName}${particle} ${roomName} 밀담에 합류했습니다.`;
 }
 
 function buildRoomLeaveNotice(state, playerName, roomId) {
   const particle = subjectParticle(playerName);
-  if (roomId === "lobby") return `${playerName}${particle} 로비를 떠났습니다.`;
+  if (roomId === "lobby") return `${playerName}${particle} 로비${objectParticle("로비")} 떠났습니다.`;
   const roomName = getRoomName(state.rooms, roomId);
   return `${playerName}${particle} ${roomName} 밀담에서 나갔습니다.`;
 }
@@ -4330,8 +5494,7 @@ function formatLastDecisionBadge(outcome, playerId, players) {
     const line = outcome.result?.lines?.find((item) => item.from === playerId) ?? null;
     if (!line) return "";
     if (line.to === "abstain") return "→ 기권";
-    const targetName = characterProfiles[line.to]?.characterName ?? getPlayerName(players, line.to);
-    return `→ ${targetName}`;
+    return `→ ${getPlayerName(players, line.to)}`;
   }
   const entry = outcome.result?.counts?.find((item) => item.targetId === playerId) ?? null;
   const count = entry?.count ?? 0;
@@ -4341,7 +5504,7 @@ function formatLastDecisionBadge(outcome, playerId, players) {
 function DecisionOutcomeSummary({ outcome, players }) {
   if (!outcome) return null;
   const getPlayer = (id) => players.find((player) => player.id === id) ?? null;
-  const nameFor = (id) => characterProfiles[id]?.characterName ?? getPlayerName(players, id);
+  const nameFor = (id) => getPlayerName(players, id);
 
   if (outcome.type === "nomination") {
     const lines = outcome.result?.lines ?? [];
